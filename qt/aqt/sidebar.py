@@ -616,7 +616,10 @@ class SidebarTreeView(QTreeView):
         )
 
         def on_click() -> None:
-            self.show_context_menu(root, None)
+            idx = self.indexAt(self.mapFromGlobal(QCursor.pos()))
+            item = self.model().item_for_index(idx)
+            if idx.isValid() and item.item_type == SidebarItemType.SAVED_SEARCH_ROOT:
+                self.show_context_menu(root, None)
 
         root.on_click = on_click
 
