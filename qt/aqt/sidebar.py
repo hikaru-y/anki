@@ -939,7 +939,7 @@ class SidebarTreeView(QTreeView):
         if idx:
             self.maybe_add_tree_actions(m, item, idx)
 
-        if not m.children():
+        if m.isEmpty():
             return
 
         # until we support multiple selection, show user that only the current
