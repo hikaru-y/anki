@@ -105,16 +105,18 @@ function _showAnswer(a: string, bodyclass: string): void {
         _updateQA(
             a,
             aFade,
-            function () {
+            async function () {
                 if (bodyclass) {
                     //  when previewing
                     document.body.className = bodyclass;
                 }
 
                 // scroll to answer?
-                var e = $("#answer");
-                if (e[0]) {
-                    e[0].scrollIntoView();
+                const answerElement = document.getElementById("answer");
+                if (answerElement) {
+                    // wait for all images to load
+                    await _allImagesLoaded(document.querySelectorAll("#qa img"), 2000);
+                    answerElement.scrollIntoView();
                 }
             },
             function () {}
@@ -161,4 +163,23 @@ function _emulateMobile(enabled: boolean): void {
     } else {
         list.remove("mobile");
     }
+}
+
+function _imageLoaded(image: HTMLImageElement): Promise<void> {
+    return new Promise((resolve) => {
+        if (image.complete) {
+            resolve();
+        } else {
+            image.addEventListener("load", () => resolve());
+            image.addEventListener("error", () => resolve());
+        }
+    });
+}
+
+function _allImagesLoaded(images: NodeList, timeoutDelay: number): Promise<any> {
+    const imagesLoaded = Promise.all(
+        [...images].map((image) => _imageLoaded(image as HTMLImageElement))
+    );
+    const timedOut = new Promise((resolve) => setTimeout(resolve, timeoutDelay));
+    return Promise.race([imagesLoaded, timedOut]);
 }
