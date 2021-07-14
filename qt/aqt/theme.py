@@ -10,7 +10,7 @@ from typing import Dict, Optional, Tuple, Union
 from anki.utils import isMac
 from aqt import QApplication, colors, gui_hooks, isWin
 from aqt.platform import set_dark_mode
-from aqt.qt import QColor, QIcon, QPainter, QPalette, QPixmap, QStyleFactory, Qt
+from aqt.qt import QColor, QIcon, QPainter, QPalette, QPixmap, QStyle, QStyleFactory, Qt
 
 
 @dataclass
@@ -35,6 +35,7 @@ class ThemeManager:
     _icon_cache_dark: Dict[str, QIcon] = {}
     _icon_size = 128
     _dark_mode_available: Optional[bool] = None
+    default_qstyle_name = ""
     default_palette: Optional[QPalette] = None
 
     # Qt applies a gradient to the buttons in dark mode
@@ -133,8 +134,10 @@ class ThemeManager:
     def qcolor(self, colors: Tuple[str, str]) -> QColor:
         return QColor(self.color(colors))
 
-    def apply_style(self, app: QApplication) -> None:
-        self.default_palette = app.style().standardPalette()
+    def apply_style(self, app: QApplication, during_startup: bool = True) -> None:
+        if during_startup:
+            self.default_qstyle_name = app.style().objectName()
+            self.default_palette = app.style().standardPalette()
         self._apply_palette(app)
         self._apply_style(app)
 
@@ -247,6 +250,21 @@ QTabWidget { background-color: %s; }
         s.colCram = self.color(colors.SUSPENDED_BG)
         s.colSusp = self.color(colors.SUSPENDED_BG)
         s.colMature = self.color(colors.REVIEW_COUNT)
+
+    def toggle_theme(self) -> None:
+        from aqt import mw
+
+        self.night_mode = not self.night_mode
+        if not self.night_mode:
+            mw.app.setStyle(QStyleFactory.create(self.default_qstyle_name))
+            mw.app.setPalette(self.default_palette)
+        self.apply_style(mw.app, False)
+        # reload top toolbar
+        mw.toolbar.draw()
+        mw.moveToState("deckBrowser")
+        # save to profile global settings
+        mw.pm.set_night_mode(self.night_mode)
+        mw.pm.save()
 
 
 theme_manager = ThemeManager()

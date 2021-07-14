@@ -1142,6 +1142,12 @@ title="%s" %s>%s</button>""" % (
 
         aqt.models.Models(self, self, fromMain=True)
 
+    def on_toggle_night_mode(self) -> None:
+        if aqt.dialogs.allClosed() and self.state == "deckBrowser":
+            theme_manager.toggle_theme()
+        elif askUser(tr.qt_misc_toggle_night_mode_warning(), defaultno=True):
+            aqt.dialogs.closeAll(theme_manager.toggle_theme)
+
     def onAbout(self) -> None:
         aqt.dialogs.open("About", self)
 
@@ -1225,6 +1231,7 @@ title="%s" %s>%s</button>""" % (
         qconnect(m.actionCreateFiltered.triggered, self.onCram)
         qconnect(m.actionEmptyCards.triggered, self.onEmptyCards)
         qconnect(m.actionNoteTypes.triggered, self.onNoteTypes)
+        qconnect(m.actionToggleNightMode.triggered, self.on_toggle_night_mode)
 
     def updateTitleBar(self) -> None:
         self.setWindowTitle("Anki")
