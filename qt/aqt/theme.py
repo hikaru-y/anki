@@ -7,7 +7,7 @@ import platform
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple, Union
 
-from anki.utils import isMac
+from anki.utils import isLin, isMac
 from aqt import QApplication, colors, gui_hooks, isWin
 from aqt.platform import set_dark_mode
 from aqt.qt import QColor, QIcon, QPainter, QPalette, QPixmap, QStyleFactory, Qt
@@ -55,6 +55,16 @@ class ThemeManager:
         from aqt import mw
 
         return self._dark_mode_available and mw.pm.dark_mode_widgets()
+
+    def linux_dark_mode(self, app: QApplication) -> bool:
+        "True if a dark theme is in use and Qt's standard palette is not used."
+        if isLin:
+            palette = app.palette()
+            bg_lightness = palette.color(QPalette.Window).lightness()
+            fg_lightness = palette.color(QPalette.Text).lightness()
+            return bg_lightness < fg_lightness
+        else:
+            return False
 
     def get_night_mode(self) -> bool:
         return self._night_mode_preference
@@ -135,6 +145,7 @@ class ThemeManager:
 
     def apply_style(self, app: QApplication) -> None:
         self.default_palette = app.style().standardPalette()
+        self.night_mode |= self.linux_dark_mode(app)
         self._apply_palette(app)
         self._apply_style(app)
 
