@@ -662,3 +662,8 @@ document.head.appendChild(style);
         self.requiresCol = False
         self._domReady = False
         self._page.setContent(bytes("", "ascii"))
+
+    def on_theme_toggled(self) -> None:
+        self._page.setBackgroundColor(
+            self.get_window_bg_color(theme_manager.night_mode)
+        )

@@ -1008,7 +1008,7 @@ title="%s" %s>%s</button>""" % (
 
     def setupStyle(self) -> None:
         theme_manager.night_mode = self.pm.night_mode()
-        theme_manager.apply_style(self.app)
+        theme_manager.apply_style(self.app, on_startup=True)
 
     # Key handling
     ##########################################################################
@@ -1143,6 +1143,12 @@ title="%s" %s>%s</button>""" % (
 
         aqt.models.Models(self, self, fromMain=True)
 
+    def on_toggle_night_mode(self) -> None:
+        if aqt.dialogs.allClosed() and self.state == "deckBrowser":
+            theme_manager.toggle_theme()
+        elif askUser(tr.qt_misc_toggle_night_mode_warning(), defaultno=True):
+            aqt.dialogs.closeAll(theme_manager.toggle_theme)
+
     def onAbout(self) -> None:
         aqt.dialogs.open("About", self)
 
@@ -1226,6 +1232,14 @@ title="%s" %s>%s</button>""" % (
         qconnect(m.actionCreateFiltered.triggered, self.onCram)
         qconnect(m.actionEmptyCards.triggered, self.onEmptyCards)
         qconnect(m.actionNoteTypes.triggered, self.onNoteTypes)
+        if theme_manager.macos_dark_mode():
+            m.actionNightMode.deleteLater()
+        else:
+            qconnect(
+                m.menuTools.aboutToShow,
+                lambda: m.actionNightMode.setChecked(theme_manager.night_mode),
+            )
+            qconnect(m.actionNightMode.triggered, self.on_toggle_night_mode)
 
     def updateTitleBar(self) -> None:
         self.setWindowTitle("Anki")

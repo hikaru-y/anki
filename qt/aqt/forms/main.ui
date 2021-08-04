@@ -90,6 +90,7 @@
     <addaction name="actionAdd_ons"/>
     <addaction name="separator"/>
     <addaction name="actionNoteTypes"/>
+    <addaction name="actionNightMode"/>
     <addaction name="actionPreferences"/>
    </widget>
    <addaction name="menuCol"/>
@@ -247,6 +248,14 @@
    </property>
    <property name="shortcut">
     <string notr="true">Ctrl+Shift+Z</string>
+   </property>
+  </action>
+  <action name="actionNightMode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>qt_misc_night_mode</string>
    </property>
   </action>
  </widget>

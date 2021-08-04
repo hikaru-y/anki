@@ -220,7 +220,6 @@ for you than the default driver, please let us know on the Anki forums."""
     def setup_global(self) -> None:
         "Setup options global to all profiles."
         self.form.uiScale.setValue(int(self.mw.pm.uiScale() * 100))
-        self.form.nightMode.setChecked(self.mw.pm.night_mode())
 
         self.setup_language()
         self.setup_video_driver()
@@ -235,10 +234,6 @@ for you than the default driver, please let us know on the Anki forums."""
         newScale = self.form.uiScale.value() / 100
         if newScale != self.mw.pm.uiScale():
             self.mw.pm.setUiScale(newScale)
-            restart_required = True
-
-        if self.mw.pm.night_mode() != self.form.nightMode.isChecked():
-            self.mw.pm.set_night_mode(not self.mw.pm.night_mode())
             restart_required = True
 
         if restart_required:

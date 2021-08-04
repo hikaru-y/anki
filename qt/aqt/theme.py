@@ -7,10 +7,19 @@ import platform
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple, Union
 
-from anki.utils import isMac
+from anki.utils import isLin, isMac
 from aqt import QApplication, colors, gui_hooks, isWin
 from aqt.platform import set_dark_mode
-from aqt.qt import QColor, QIcon, QPainter, QPalette, QPixmap, QStyleFactory, Qt
+from aqt.qt import (
+    QColor,
+    QIcon,
+    QPainter,
+    QPalette,
+    QPixmap,
+    QStyleFactory,
+    Qt,
+    pyqtSignal,
+)
 
 
 @dataclass
@@ -35,6 +44,7 @@ class ThemeManager:
     _icon_cache_dark: Dict[str, QIcon] = {}
     _icon_size = 128
     _dark_mode_available: Optional[bool] = None
+    default_qstyle_name = ""
     default_palette: Optional[QPalette] = None
 
     # Qt applies a gradient to the buttons in dark mode
@@ -55,6 +65,16 @@ class ThemeManager:
         from aqt import mw
 
         return self._dark_mode_available and mw.pm.dark_mode_widgets()
+
+    def linux_dark_mode(self, app: QApplication) -> bool:
+        "True if a dark theme is in use and Qt's standard palette is not used."
+        if isLin:
+            palette = app.palette()
+            bg_lightness = palette.color(QPalette.Window).lightness()
+            fg_lightness = palette.color(QPalette.Text).lightness()
+            return bg_lightness < fg_lightness
+        else:
+            return False
 
     def get_night_mode(self) -> bool:
         return self._night_mode_preference
@@ -133,8 +153,18 @@ class ThemeManager:
     def qcolor(self, colors: Tuple[str, str]) -> QColor:
         return QColor(self.color(colors))
 
-    def apply_style(self, app: QApplication) -> None:
-        self.default_palette = app.style().standardPalette()
+    def apply_style(
+        self, app: QApplication, on_startup: bool = False, on_toggle: bool = False
+    ) -> None:
+        if on_startup:
+            self.default_qstyle_name = app.style().objectName()
+            # self.default_palette = app.style().standardPalette()
+            # self.default_style = app.style()
+            self.default_palette = app.palette()
+        if not self.night_mode and (on_toggle or self.linux_dark_mode(app)):
+            app.setStyle(QStyleFactory.create(self.default_qstyle_name))
+            # app.setStyle(self.default_style)
+            app.setPalette(self.default_palette)
         self._apply_palette(app)
         self._apply_style(app)
 
@@ -247,6 +277,23 @@ QTabWidget { background-color: %s; }
         s.colCram = self.color(colors.SUSPENDED_BG)
         s.colSusp = self.color(colors.SUSPENDED_BG)
         s.colMature = self.color(colors.REVIEW_COUNT)
+
+    def toggle_theme(self) -> None:
+        from aqt import mw
+
+        self.night_mode = not self.night_mode
+        # if not self.night_mode:
+        #     mw.app.setStyle(QStyleFactory.create(self.default_qstyle_name))
+        #     mw.app.setPalette(self.default_palette)
+        self.apply_style(mw.app, on_toggle=True)
+        for webview in (mw.web, mw.bottomWeb):
+            webview.on_theme_toggled()
+        # reload top toolbar
+        mw.toolbar.draw()
+        mw.moveToState("deckBrowser")
+        # save to profile global settings
+        mw.pm.set_night_mode(self.night_mode)
+        mw.pm.save()
 
 
 theme_manager = ThemeManager()

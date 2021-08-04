@@ -74,6 +74,8 @@ qt-misc-second =
         [one] { $count } second
        *[other] { $count } seconds
     }
+qt-misc-night-mode = Night Mode
+qt-misc-toggle-night-mode-warning = Toggling Night Mode will cause all but the main window to close and return you to the deck screen. Proceed?
 
 ## deprecated- these strings will be removed in the future, and do not need
 ## to be translated

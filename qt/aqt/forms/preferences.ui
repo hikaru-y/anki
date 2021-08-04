@@ -87,13 +87,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="nightMode">
-         <property name="text">
-          <string>preferences_night_mode</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QComboBox" name="useCurrent">
          <item>
           <property name="text">
@@ -614,7 +607,6 @@
   <tabstop>interrupt_audio</tabstop>
   <tabstop>pastePNG</tabstop>
   <tabstop>paste_strips_formatting</tabstop>
-  <tabstop>nightMode</tabstop>
   <tabstop>useCurrent</tabstop>
   <tabstop>recording_driver</tabstop>
   <tabstop>default_search_text</tabstop>

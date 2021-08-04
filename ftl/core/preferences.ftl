@@ -13,7 +13,6 @@ preferences-learn-ahead-limit = Learn ahead limit
 preferences-mins = mins
 preferences-network = Network
 preferences-next-day-starts-at = Next day starts at
-preferences-night-mode = Night mode
 preferences-note-media-is-not-backed-up = Note: Media is not backed up. Please create a periodic backup of your Anki folder to be safe.
 preferences-on-next-sync-force-changes-in = On next sync, force changes in one direction
 preferences-paste-clipboard-images-as-png = Paste clipboard images as PNG
