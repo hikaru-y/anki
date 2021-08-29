@@ -332,7 +332,7 @@ class Reviewer:
         a = self.mw.col.media.escape_media_filenames(c.answer())
 
         self.web.eval(
-            f"_showQuestion({json.dumps(q)}, {json.dumps(a)}, '{bodyclass}');"
+            f"anki._showQuestion({json.dumps(q)}, {json.dumps(a)}, '{bodyclass}');"
         )
         self._update_flag_icon()
         self._update_mark_icon()
@@ -346,10 +346,12 @@ class Reviewer:
         return card.autoplay()
 
     def _update_flag_icon(self) -> None:
-        self.web.eval(f"_drawFlag({self.card.user_flag()});")
+        self.web.eval(f"anki._drawFlag({self.card.user_flag()});")
 
     def _update_mark_icon(self) -> None:
-        self.web.eval(f"_drawMark({json.dumps(self.card.note().has_tag(MARKED_TAG))});")
+        self.web.eval(
+            f"anki._drawMark({json.dumps(self.card.note().has_tag(MARKED_TAG))});"
+        )
 
     _drawMark = _update_mark_icon
     _drawFlag = _update_flag_icon
@@ -377,7 +379,7 @@ class Reviewer:
         a = self._mungeQA(a)
         a = gui_hooks.card_will_show(a, c, "reviewAnswer")
         # render and update bottom
-        self.web.eval(f"_showAnswer({json.dumps(a)});")
+        self.web.eval(f"anki._showAnswer({json.dumps(a)});")
         self._showEaseButtons()
         self.mw.web.setFocus()
         # user hook
@@ -694,7 +696,7 @@ class Reviewer:
         return s
 
     def _getTypedAnswer(self) -> None:
-        self.web.evalWithCallback("getTypedAnswer();", self._onTypedAnswer)
+        self.web.evalWithCallback("anki.getTypedAnswer();", self._onTypedAnswer)
 
     def _onTypedAnswer(self, val: None) -> None:
         self.typedAnswer = val or ""

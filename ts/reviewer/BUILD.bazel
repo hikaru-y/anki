@@ -35,7 +35,7 @@ esbuild(
         "--resolve-extensions=.mjs,.js",
         "--log-level=warning",
     ],
-    entry_point = "index_wrapper.ts",
+    entry_point = "index.ts",
     visibility = ["//visibility:public"],
     deps = [
         ":reviewer_ts",

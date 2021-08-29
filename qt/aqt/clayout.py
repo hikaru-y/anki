@@ -517,9 +517,9 @@ class CardLayout(QDialog):
             text = a
 
         # use _showAnswer to avoid the longer delay
-        self.preview_web.eval(f"_showAnswer({json.dumps(text)},'{bodyclass}');")
+        self.preview_web.eval(f"anki._showAnswer({json.dumps(text)},'{bodyclass}');")
         self.preview_web.eval(
-            f"_emulateMobile({json.dumps(self.mobile_emulation_enabled)});"
+            f"anki._emulateMobile({json.dumps(self.mobile_emulation_enabled)});"
         )
 
         if not self.have_autoplayed:

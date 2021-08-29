@@ -10,9 +10,7 @@ import "css-browser-selector/css_browser_selector.min";
 
 export { default as $, default as jQuery } from "jquery/dist/jquery";
 
-import { mutateNextCardStates } from "./answering";
-globalThis.anki = globalThis.anki || {};
-globalThis.anki.mutateNextCardStates = mutateNextCardStates;
+export { mutateNextCardStates } from "./answering";
 
 import { bridgeCommand } from "lib/bridgecommand";
 import { allImagesLoaded, preloadAnswerImages } from "./images";
@@ -197,3 +195,22 @@ export function _typeAnsPress(): void {
 export function _emulateMobile(enabled: boolean): void {
     document.documentElement.classList.toggle("mobile", enabled);
 }
+
+// expose all exports of this file under an "anki" namespace
+// and some directly to the global namespace as well.
+import * as globals from "./index";
+globalThis.anki = { ...globalThis.anki, ...globals };
+// globalThis.onUpdateHook = onUpdateHook;
+globalThis.onShownHook = onShownHook;
+Object.defineProperty(globalThis, "onUpdateHook", {
+    get() {
+        console.log("Deprecated!");
+        return onUpdateHook;
+    },
+});
+Object.defineProperty(globalThis, "ankiPlatform", {
+    get() {
+        console.log("Deprecated!");
+        return ankiPlatform;
+    },
+});

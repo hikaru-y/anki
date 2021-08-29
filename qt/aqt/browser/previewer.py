@@ -148,7 +148,7 @@ class Previewer(QDialog):
         else:
             flag = 0
             marked = False
-        self._web.eval(f"_drawFlag({flag}); _drawMark({json.dumps(marked)});")
+        self._web.eval(f"anki._drawFlag({flag}); anki._drawMark({json.dumps(marked)});")
 
     def render_card(self) -> None:
         self.cancel_timer()
@@ -178,7 +178,7 @@ class Previewer(QDialog):
             return
         c = self.card()
         self._update_flag_and_mark_icons(c)
-        func = "_showQuestion"
+        func = "anki._showQuestion"
         ans_txt = ""
         if not c:
             txt = tr.qt_misc_please_select_1_card()
@@ -200,7 +200,7 @@ class Previewer(QDialog):
             ans_txt = c.answer()
 
             if self._state == "answer":
-                func = "_showAnswer"
+                func = "anki._showAnswer"
                 txt = ans_txt
             txt = re.sub(r"\[\[type:[^]]+\]\]", "", txt)
 
