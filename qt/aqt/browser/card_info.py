@@ -16,14 +16,16 @@ class CardInfoDialog(QDialog):
 
     def __init__(self, parent: QWidget, mw: aqt.AnkiQt, card: Card) -> None:
         super().__init__(parent)
+        mw.garbage_collect_on_dialog_finish(self)
         disable_help_button(self)
         cs = CardStats(mw.col, card)
         info = cs.report(include_revlog=True)
 
         l = QVBoxLayout()
         l.setContentsMargins(0, 0, 0, 0)
-        w = AnkiWebView(title="browser card info")
-        l.addWidget(w)
+        # w = AnkiWebView(title="browser card info").weakref_proxy()
+        w = AnkiWebView.weakref(title="browser card info")
+        l.addWidget(w.instance)
         w.stdHtml(info + "<p>", context=self)
         bb = QDialogButtonBox(QDialogButtonBox.Close)
         l.addWidget(bb)

@@ -35,10 +35,12 @@ class EmptyCardsDialog(QDialog):
 
     def __init__(self, mw: aqt.main.AnkiQt, report: EmptyCardsReport) -> None:
         super().__init__(mw)
+        mw.garbage_collect_on_dialog_finish(self)
         self.mw = mw.weakref()
         self.report = report
         self.form = aqt.forms.emptycards.Ui_Dialog()
         self.form.setupUi(self)
+        self.form.webview = self.form.webview.weakref_proxy()
         restoreGeom(self, "emptycards")
         self.setWindowTitle(tr.empty_cards_window_title())
         disable_help_button(self)

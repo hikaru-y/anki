@@ -37,6 +37,7 @@ class NewDeckStats(QDialog):
         disable_help_button(self)
         f = self.form
         f.setupUi(self)
+        f.web = f.web.weakref_proxy()
         f.groupBox.setVisible(False)
         f.groupBox_2.setVisible(False)
         restoreGeom(self, self.name)
@@ -52,7 +53,6 @@ class NewDeckStats(QDialog):
         self.activateWindow()
 
     def reject(self) -> None:
-        self.form.web = None
         saveGeom(self, self.name)
         aqt.dialogs.markClosed("NewDeckStats")
         QDialog.reject(self)
@@ -122,6 +122,7 @@ class DeckStats(QDialog):
             # the wrong place, so for now we just disable the border instead
             self.setStyleSheet("QGroupBox { border: 0; }")
         f.setupUi(self)
+        f.web = f.web.weakref_proxy()
         restoreGeom(self, self.name)
         b = f.buttonBox.addButton(tr.statistics_save_pdf(), QDialogButtonBox.ActionRole)
         qconnect(b.clicked, self.saveImage)
@@ -140,7 +141,6 @@ class DeckStats(QDialog):
         self.activateWindow()
 
     def reject(self) -> None:
-        self.form.web = None
         saveGeom(self, self.name)
         aqt.dialogs.markClosed("DeckStats")
         QDialog.reject(self)

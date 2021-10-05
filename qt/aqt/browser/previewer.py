@@ -81,8 +81,8 @@ class Previewer(QDialog):
         self.silentlyClose = True
         self.vbox = QVBoxLayout()
         self.vbox.setContentsMargins(0, 0, 0, 0)
-        self._web = AnkiWebView(title="previewer")
-        self.vbox.addWidget(self._web)
+        self._web = AnkiWebView(title="previewer").weakref_proxy()
+        self.vbox.addWidget(self._web.instance)
         self.bbox = QDialogButtonBox()
 
         self._replay = self.bbox.addButton(
@@ -124,7 +124,6 @@ class Previewer(QDialog):
     def _on_close(self) -> None:
         self._open = False
         self._close_callback()
-        self._web = None
 
     def _setup_web_view(self) -> None:
         self._web.stdHtml(

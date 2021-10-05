@@ -36,6 +36,7 @@ class FindDuplicatesDialog(QDialog):
         self.mw.garbage_collect_on_dialog_finish(self)
         self.form = form = aqt.forms.finddupes.Ui_Dialog()
         form.setupUi(self)
+        self.form.webView = self.form.webView.weakref_proxy()
         restoreGeom(self, "findDupes")
         disable_help_button(self)
         searchHistory = restore_combo_history(form.search, "findDupesFind")

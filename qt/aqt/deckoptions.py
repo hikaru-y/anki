@@ -44,12 +44,12 @@ class DeckOptionsDialog(QDialog):
         restoreGeom(self, self.TITLE)
         addCloseShortcut(self)
 
-        self.web = AnkiWebView(title=self.TITLE)
+        self.web = AnkiWebView(title=self.TITLE).weakref_proxy()
         self.web.setVisible(False)
         self.web.load_ts_page("deck-options")
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.web)
+        layout.addWidget(self.web.instance)
         self.setLayout(layout)
 
         self.web.eval(
@@ -62,7 +62,6 @@ class DeckOptionsDialog(QDialog):
         gui_hooks.deck_options_did_load(self)
 
     def reject(self) -> None:
-        self.web = None
         saveGeom(self, self.TITLE)
         QDialog.reject(self)
 

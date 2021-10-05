@@ -1,10 +1,13 @@
 # Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+from __future__ import annotations
+
 import dataclasses
 import json
 import re
 import sys
+import weakref
 from typing import Any, Callable, List, Optional, Sequence, Tuple, cast
 
 import anki
@@ -665,3 +668,16 @@ document.head.appendChild(style);
         self.requiresCol = False
         self._domReady = False
         self._page.setContent(bytes("", "ascii"))
+
+    def weakref_proxy(self) -> AnkiWebView:
+        # return weakref.proxy(  self)
+        return cast(AnkiWebView, weakref.proxy(self))
+
+    @classmethod
+    def weakref(cls, parent: Optional[QWidget] = None, title="default") -> AnkiWebView:
+        return cast(AnkiWebView, weakref.proxy(cls(parent=parent, title=title)))
+
+    @pyqtProperty(QWebEngineView)
+    def instance(self) -> AnkiWebView:
+        """get the instance itself from weakref proxy"""
+        return self

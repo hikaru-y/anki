@@ -319,8 +319,8 @@ class CardLayout(QDialog):
 
     def setup_preview(self) -> None:
         pform = self.pform
-        self.preview_web = AnkiWebView(title="card layout")
-        pform.verticalLayout.addWidget(self.preview_web)
+        self.preview_web = AnkiWebView(title="card layout").weakref_proxy()
+        pform.verticalLayout.addWidget(self.preview_web.instance)
         pform.verticalLayout.setStretch(1, 99)
         pform.preview_front.isChecked()
         qconnect(pform.preview_front.clicked, self.on_preview_toggled)
@@ -828,7 +828,6 @@ class CardLayout(QDialog):
         av_player.stop_and_clear_queue()
         saveGeom(self, "CardLayout")
         saveSplitter(self.mainArea, "CardLayoutMainArea")
-        self.preview_web = None
         self.model = None
         self.rendered_card = None
         self.mw = None
