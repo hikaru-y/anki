@@ -5,9 +5,18 @@
 @import "bootstrap/scss/functions";
 @import "bootstrap/scss/variables";
 
-@mixin impressed-shadow($intensity) {
-    box-shadow: inset 0 calc(var(--buttons-size) / 15) calc(var(--buttons-size) / 5)
-        rgba(black, $intensity);
+@mixin impressed-shadow($night-mode: false) {
+    $offset-divisor: 20;
+    $offset: calc(var(--buttons-size) / #{$offset-divisor});
+    $negative-offset: calc(var(--buttons-size) / #{$offset-divisor} * -1);
+    $blur-radius: calc(var(--buttons-size) / 12);
+    $color: rgba(black, 0.3);
+    @if $night-mode {
+        $color: rgba(white, 0.7);
+    }
+
+    box-shadow: inset $offset $offset $blur-radius $color,
+        inset $negative-offset $negative-offset $blur-radius $color;
 }
 
 @mixin btn-border-radius {
@@ -46,7 +55,7 @@ $btn-base-color-day: white;
         @if ($with-active) {
             &:active,
             &.active {
-                @include impressed-shadow(0.25);
+                @include impressed-shadow;
             }
 
             &:active.active {
@@ -107,7 +116,7 @@ $btn-base-color-night: fusion-vars.$button-border;
         @if ($with-active) {
             &:active,
             &.active {
-                @include impressed-shadow(0.35);
+                @include impressed-shadow($night-mode: true);
                 border-color: darken($btn-base-color-night, 8%);
             }
 
