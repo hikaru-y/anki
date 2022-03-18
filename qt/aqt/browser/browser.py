@@ -319,17 +319,20 @@ class Browser(QMainWindow):
         card: Card | None = None,
         search: tuple[str | SearchNode] | None = None,
     ) -> None:
-        qconnect(self.form.searchEdit.lineEdit().returnPressed, self.onSearchActivated)
-        self.form.searchEdit.setCompleter(None)
-        self.form.searchEdit.lineEdit().setPlaceholderText(
-            tr.browsing_search_bar_hint()
+        search_bar = self.form.searchEdit
+        qconnect(search_bar.lineEdit().returnPressed, self.onSearchActivated)
+        qconnect(
+            search_bar.lineEdit().textChanged,
+            lambda text: search_bar.lineEdit().setClearButtonEnabled(bool(text)),
         )
-        self.form.searchEdit.addItems([""] + self.mw.pm.profile["searchHistory"])
+        search_bar.setCompleter(None)
+        search_bar.lineEdit().setPlaceholderText(tr.browsing_search_bar_hint())
+        search_bar.addItems([""] + self.mw.pm.profile["searchHistory"])
         if search is not None:
             self.search_for_terms(*search)
         else:
             self._default_search(card)
-        self.form.searchEdit.setFocus()
+        search_bar.setFocus()
         if card:
             self.table.select_single_card(card.id)
 

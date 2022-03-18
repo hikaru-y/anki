@@ -43,6 +43,7 @@ class SidebarSearchBar(QLineEdit):
         self.setStyleSheet("QLineEdit { %s }" % ";".join(styles))
 
     def onTextChanged(self, text: str) -> None:
+        self.setClearButtonEnabled(bool(text))
         if not self.timer.isActive():
             self.timer.start()
 
