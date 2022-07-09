@@ -201,6 +201,13 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
     }
 
+    let tagEditorComponent: TagEditor;
+
+    function saveNow(): void {
+        tagEditorComponent.commitTagEditing();
+        saveFieldNow();
+    }
+
     export function focusIfField(x: number, y: number): boolean {
         const elements = document.elementsFromPoint(x, y);
         const first = elements[0];
@@ -244,7 +251,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             setTags,
             setBackgrounds,
             setClozeHint,
-            saveNow: saveFieldNow,
+            saveNow,
             focusIfField,
             getNoteId,
             setNoteId,
@@ -382,7 +389,7 @@ the AddCards dialog) should be implemented in the user of this component.
     </FieldsEditor>
 
     <StickyContainer --gutter-block="0.1rem" --sticky-borders="1px 0 0" class="d-flex">
-        <TagEditor {tags} on:tagsupdate={saveTags} />
+        <TagEditor {tags} on:tagsupdate={saveTags} bind:this={tagEditorComponent} />
     </StickyContainer>
 </div>
 

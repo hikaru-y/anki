@@ -374,6 +374,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     let height: number;
     let badgeHeight: number;
+    let tagEditorDiv: HTMLDivElement;
+
+    export function commitTagEditing(): void {
+        if (tagEditorDiv.contains(document.activeElement)) {
+            deselect();
+            document.body.focus();
+            saveTags();
+        }
+    }
 
     // typically correct for rows < 7
     $: assumedRows = Math.floor(height / badgeHeight);
@@ -381,7 +390,12 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     $: anyTagsSelected = tagTypes.some((tag) => tag.selected);
 </script>
 
-<div class="tag-editor-area" on:focusout={deselectIfLeave} bind:offsetHeight={height}>
+<div
+    class="tag-editor-area"
+    on:focusout={deselectIfLeave}
+    bind:offsetHeight={height}
+    bind:this={tagEditorDiv}
+>
     <TagOptionsButton
         bind:badgeHeight
         tagsSelected={anyTagsSelected}
