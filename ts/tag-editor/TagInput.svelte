@@ -2,6 +2,14 @@
 Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
+<script context="module" lang="ts">
+    let current: HTMLInputElement | null = null;
+
+    export function commitTagEdits(): void {
+        current?.blur();
+    }
+</script>
+
 <script lang="ts">
     import { createEventDispatcher, onMount, tick } from "svelte";
 
@@ -234,6 +242,16 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
     }
 
+    function updateCurrent(input: HTMLInputElement) {
+        current = input;
+
+        return {
+            destroy(): void {
+                current = null;
+            },
+        };
+    }
+
     onMount(() => {
         registerShortcut(onSelectAll, "Control+A", { target: input });
         input.focus();
@@ -257,6 +275,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     on:input={() => dispatch("taginput")}
     on:copy|preventDefault={onCopy}
     on:paste|preventDefault={onPaste}
+    use:updateCurrent
 />
 
 <style lang="scss">

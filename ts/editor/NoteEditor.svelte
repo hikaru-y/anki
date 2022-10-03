@@ -50,6 +50,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { ResizablePane } from "../components/types";
     import { bridgeCommand } from "../lib/bridgecommand";
     import { TagEditor } from "../tag-editor";
+    import { commitTagEdits } from "../tag-editor/TagInput.svelte";
     import TagAddButton from "../tag-editor/tag-options-button/TagAddButton.svelte";
     import { ChangeTimer } from "./change-timer";
     import DecoratedElements from "./DecoratedElements.svelte";
@@ -253,6 +254,13 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
     }
 
+    function saveNow(): void {
+        // in case of changing note or closing editor via shortcut key
+        commitTagEdits();
+
+        saveFieldNow();
+    }
+
     export function focusIfField(x: number, y: number): boolean {
         const elements = document.elementsFromPoint(x, y);
         const first = elements[0];
@@ -305,7 +313,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             setTagsCollapsed,
             setBackgrounds,
             setClozeHint,
-            saveNow: saveFieldNow,
+            saveNow,
             focusIfField,
             getNoteId,
             setNoteId,
