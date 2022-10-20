@@ -50,7 +50,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     let collapsibleElement: HTMLElement;
 
-    $: collapsed = $size === 0;
+    $: collapsed = !$size;
     $: expanded = $size === 1;
     $: height = $size * contentHeight;
     $: transitioning = $size > 0 && !(collapsed || expanded);
