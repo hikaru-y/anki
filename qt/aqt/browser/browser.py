@@ -143,7 +143,6 @@ class Browser(QMainWindow):
         restoreState(self, "editor")
 
         # responsive layout
-        self.aspect_ratio = self.width() / self.height()
         self.set_layout(self.mw.pm.browser_layout(), True)
         # disable undo/redo
         self.on_undo_state_change(mw.undo_actions_info())
@@ -193,7 +192,7 @@ class Browser(QMainWindow):
 
         if mode == BrowserLayout.AUTO:
             self.auto_layout = True
-            self.maybe_update_layout(self.aspect_ratio, True)
+            self.maybe_update_layout()
             self.form.actionLayoutAuto.setChecked(True)
             self.form.actionLayoutVertical.setChecked(False)
             self.form.actionLayoutHorizontal.setChecked(False)
@@ -217,20 +216,19 @@ class Browser(QMainWindow):
                 if not init:
                     tooltip(tr.qt_misc_layout_horizontal_enabled())
 
-    def maybe_update_layout(self, aspect_ratio: float, force: bool = False) -> None:
-        if force or math.floor(aspect_ratio) != math.floor(self.aspect_ratio):
-            if aspect_ratio < 1:
-                self.form.splitter.setOrientation(Qt.Orientation.Vertical)
-            else:
-                self.form.splitter.setOrientation(Qt.Orientation.Horizontal)
+    def maybe_update_layout(self) -> None:
+        new_orientation = (
+            Qt.Orientation.Horizontal
+            if self.width() > self.height()
+            else Qt.Orientation.Vertical
+        )
+        splitter = self.form.splitter
+        if splitter.orientation() != new_orientation:
+            splitter.setOrientation(new_orientation)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
-        aspect_ratio = self.width() / self.height()
-
         if self.auto_layout:
-            self.maybe_update_layout(aspect_ratio)
-
-        self.aspect_ratio = aspect_ratio
+            self.maybe_update_layout()
 
         QMainWindow.resizeEvent(self, event)
 
