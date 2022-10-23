@@ -135,13 +135,6 @@ class Browser(QMainWindow):
         self.setupMenus()
         self.setupHooks()
         self.setupEditor()
-
-        # restoreXXX() should be called after all child widgets have been created
-        # and attached to QMainWindow
-        restoreGeom(self, "editor", 0)
-        restoreSplitter(self.form.splitter, "editor3")
-        restoreState(self, "editor")
-
         # responsive layout
         self.set_layout(self.mw.pm.browser_layout(), True)
         # disable undo/redo
@@ -150,6 +143,11 @@ class Browser(QMainWindow):
         self.model = MockModel(self)
         gui_hooks.browser_will_show(self)
         self.setupSearch(card, search)
+        # restoreXXX() should be called after all child widgets have been created
+        # and attached to QMainWindow
+        restoreGeom(self, "editor", 0)
+        restoreSplitter(self.form.splitter, "editor3")
+        restoreState(self, "editor")
         self.show()
 
     def on_operation_did_execute(
