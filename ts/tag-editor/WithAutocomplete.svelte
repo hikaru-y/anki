@@ -75,6 +75,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
      * Choose as accepted suggestion
      */
     async function chooseSelected() {
+        console.log("selected");
         active = true;
         dispatch("choose", { chosen: suggestionsItems[selected ?? -1] });
 

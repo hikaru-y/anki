@@ -3,6 +3,10 @@ Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
 <script lang="ts">
+    import Shortcut from "../components/Shortcut.svelte";
+    import { setContext } from "svelte";
+    import { tagsSelectedShortcutsKey } from "../lib/context-keys";
+
     import { createEventDispatcher, tick } from "svelte";
     import type { Writable } from "svelte/store";
     import { writable } from "svelte/store";
@@ -112,6 +116,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     export function appendEmptyTag(): void {
+        console.log("empty");
         // used by tag badge and tag spacer
         deselect();
         const lastTag = tagTypes[tagTypes.length - 1];
@@ -148,6 +153,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     async function splitTag(index: number, start: number, end: number): Promise<void> {
+        console.log("splitTag");
         const current = activeName.slice(0, start);
         const splitOff = activeName.slice(end);
 
@@ -373,6 +379,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         saveTags();
     }
 
+    const allShortcut = "Control+A";
+    const copyShortcut = "Control+C";
+    const removeShortcut = "Backspace";
+    setContext(tagsSelectedShortcutsKey, { allShortcut, copyShortcut, removeShortcut });
+
     let height: number;
     let badgeHeight: number;
 
@@ -383,6 +394,12 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     $: dispatch("heightChange", { height: height * 1.15 });
 </script>
+
+{#if anyTagsSelected}
+    <Shortcut keyCombination={allShortcut} on:action={selectAllTags} />
+    <Shortcut keyCombination={copyShortcut} on:action={copySelectedTags} />
+    <Shortcut keyCombination={removeShortcut} on:action={deleteSelectedTags} />
+{/if}
 
 <div class="tag-editor" on:focusout={deselectIfLeave} bind:offsetHeight={height}>
     <TagOptionsButton
@@ -426,7 +443,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                     on:select={({ detail }) => onAutocomplete(detail.selected)}
                     on:choose={({ detail }) => {
                         onAutocomplete(detail.chosen);
-                        splitTag(index, detail.chosen.length, detail.chosen.length);
+                        // splitTag(index, detail.chosen.length, detail.chosen.length);
                     }}
                     let:createAutocomplete
                 >

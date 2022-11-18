@@ -3,7 +3,8 @@ Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
 <script lang="ts">
-    import { createEventDispatcher } from "svelte";
+    import { createEventDispatcher, getContext } from "svelte";
+    import { tagsSelectedShortcutsKey } from "../../lib/context-keys";
 
     import DropdownItem from "../../components/DropdownItem.svelte";
     import IconConstrain from "../../components/IconConstrain.svelte";
@@ -18,12 +19,21 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     let show = false;
 
-    const allShortcut = "Control+A";
-    const copyShortcut = "Control+C";
-    const removeShortcut = "Backspace";
+    // const allShortcut = "Control+A";
+    // const copyShortcut = "Control+C";
+    // const removeShortcut = "Backspace";
+    const { allShortcut, copyShortcut, removeShortcut } = getContext<
+        Record<string, string>
+    >(tagsSelectedShortcutsKey);
 </script>
 
-<WithFloating {show} placement="top" let:asReference>
+<WithFloating
+    {show}
+    placement="top"
+    portalTarget={document.body}
+    shift={0}
+    let:asReference
+>
     <div class="tags-selected-button" use:asReference on:click={() => (show = !show)}>
         <IconConstrain>{@html dotsIcon}</IconConstrain>
     </div>
@@ -32,25 +42,25 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         <DropdownItem on:click={() => dispatch("tagselectall")}>
             {tr.editingTagsSelectAll()} ({getPlatformString(allShortcut)})
         </DropdownItem>
-        <Shortcut
+        <!-- <Shortcut
             keyCombination={allShortcut}
             on:action={() => dispatch("tagselectall")}
-        />
+        /> -->
 
         <DropdownItem on:click={() => dispatch("tagcopy")}
             >{tr.editingTagsCopy()} ({getPlatformString(copyShortcut)})</DropdownItem
         >
-        <Shortcut keyCombination={copyShortcut} on:action={() => dispatch("tagcopy")} />
+        <!-- <Shortcut keyCombination={copyShortcut} on:action={() => dispatch("tagcopy")} /> -->
 
         <DropdownItem on:click={() => dispatch("tagdelete")}
             >{tr.editingTagsRemove()} ({getPlatformString(
                 removeShortcut,
             )})</DropdownItem
         >
-        <Shortcut
+        <!-- <Shortcut
             keyCombination={removeShortcut}
             on:action={() => dispatch("tagdelete")}
-        />
+        /> -->
     </Popover>
 </WithFloating>
 

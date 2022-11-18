@@ -1,3 +1,16 @@
 {
-    "exclude": ["**/node_modules", ".bazel", "dist"]
+    "exclude": [
+        "**/node_modules",
+        ".buildkite",
+        ".bazel",
+        "cargo",
+        "docs",
+        "dist",
+        "ftl",
+        "proto",
+        "sass",
+        "target",
+        "ts",
+        "rslib"
+    ]
 }
