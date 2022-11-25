@@ -2,7 +2,14 @@
 Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
+<script context="module" lang="ts">
+    import { writable, Writable } from "svelte/store";
+
+    export const activeTagInput: Writable<HTMLInputElement | null> = writable(null);
+</script>
+
 <script lang="ts">
+    import type { ActionReturn } from "svelte/types/runtime/action";
     import { createEventDispatcher, onMount, tick } from "svelte";
 
     import { isArrowLeft, isArrowRight } from "../lib/keys";
@@ -238,6 +245,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         registerShortcut(onSelectAll, "Control+A", { target: input });
         input.focus();
     });
+
+    function updateCurrent(input: HTMLInputElement): ActionReturn {
+        $activeTagInput = input;
+        return {
+            destroy(): void {
+                $activeTagInput = null;
+            },
+        };
+    }
 </script>
 
 <input
@@ -257,6 +273,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     on:input={() => dispatch("taginput")}
     on:copy|preventDefault={onCopy}
     on:paste|preventDefault={onPaste}
+    use:updateCurrent
 />
 
 <style lang="scss">

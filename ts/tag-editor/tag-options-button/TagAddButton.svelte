@@ -10,6 +10,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import * as tr from "../../lib/ftl";
     import { getPlatformString } from "../../lib/shortcuts";
     import { addTagIcon, tagIcon } from "./icons";
+    import { activeTagInput } from "../TagInput.svelte";
 
     export let keyCombination: string;
 
@@ -23,7 +24,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 <div
     class="tag-add-button"
     title="{tr.editingTagsAdd()} ({getPlatformString(keyCombination)})"
-    tabindex={0}
+    tabindex={$activeTagInput ? -1 : 0}
     on:click={appendTag}
     on:focus={appendTag}
 >
