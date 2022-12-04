@@ -14,6 +14,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import SuperscriptButton from "./SuperscriptButton.svelte";
     import TextColorButton from "./TextColorButton.svelte";
     import UnderlineButton from "./UnderlineButton.svelte";
+    import UndoRedoButtons from "./UndoRedoButtons.svelte";
 
     export let api = {};
 
@@ -53,6 +54,12 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     <Item>
         <ButtonGroup>
             <RemoveFormatButton />
+        </ButtonGroup>
+    </Item>
+
+    <Item>
+        <ButtonGroup>
+            <UndoRedoButtons />
         </ButtonGroup>
     </Item>
 </DynamicallySlottable>
