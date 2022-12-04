@@ -11,6 +11,8 @@ export { default as subscriptIcon } from "@mdi/svg/svg/format-subscript.svg";
 export { default as superscriptIcon } from "@mdi/svg/svg/format-superscript.svg";
 export { default as functionIcon } from "@mdi/svg/svg/function-variant.svg";
 export { default as paperclipIcon } from "@mdi/svg/svg/paperclip.svg";
+export { default as redoIcon } from "@mdi/svg/svg/redo.svg";
+export { default as undoIcon } from "@mdi/svg/svg/undo.svg";
 export { default as eraserIcon } from "bootstrap-icons/icons/eraser.svg";
 export { default as justifyFullIcon } from "bootstrap-icons/icons/justify.svg";
 export { default as olIcon } from "bootstrap-icons/icons/list-ol.svg";

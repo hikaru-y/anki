@@ -6,6 +6,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import type { Readable } from "svelte/store";
 
     import type { EditingAreaAPI } from "./EditingArea.svelte";
+    import type { Stack } from "./UndoStack.svelte";
 
     export interface FieldData {
         name: string;
@@ -21,6 +22,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         element: Promise<HTMLElement>;
         direction: Readable<"ltr" | "rtl">;
         editingArea: EditingAreaAPI;
+        undoStack: Stack;
     }
 
     import { registerPackage } from "@tslib/runtime-require";
@@ -43,9 +45,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <script lang="ts">
+    import { getUndoStackContext } from "./UndoStack.svelte";
     import { collapsedKey, directionKey } from "@tslib/context-keys";
     import { promiseWithResolver } from "@tslib/promise";
-    import { onDestroy, setContext } from "svelte";
+    import { getContext, onDestroy, onMount, setContext } from "svelte";
     import type { Writable } from "svelte/store";
     import { writable } from "svelte/store";
 
@@ -58,6 +61,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export let collapsed = false;
     export let flipInputs = false;
     export let dupe = false;
+
+    const undoStack = getUndoStackContext();
 
     const directionStore = writable<"ltr" | "rtl">();
     setContext(directionKey, directionStore);
@@ -79,6 +84,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         element,
         direction: directionStore,
         editingArea: editingArea as EditingAreaAPI,
+        undoStack,
     });
 
     setContextProperty(api);
