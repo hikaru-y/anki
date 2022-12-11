@@ -76,6 +76,12 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     $: disabled = !$focusedInput || !editingInputIsRichText($focusedInput);
 
     let showFloating = false;
+
+    let onHidden: (() => void) | null = null;
+    $: if (!showFloating) {
+        onHidden?.();
+        onHidden = null;
+    }
 </script>
 
 <WithFloating
@@ -94,7 +100,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     <Popover slot="floating" --popover-padding-inline="0">
         {#each dropdownItems as [callback, keyCombination, label]}
-            <DropdownItem on:click={callback}>
+            <DropdownItem on:click={() => (onHidden = callback)}>
                 <span>{label}</span>
                 <span class="ms-auto ps-2 shortcut"
                     >{getPlatformString(keyCombination)}</span
