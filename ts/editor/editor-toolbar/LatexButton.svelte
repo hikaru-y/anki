@@ -76,6 +76,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     $: disabled = !$focusedInput || !editingInputIsRichText($focusedInput);
 
     let showFloating = false;
+    $: if (disabled) {
+        showFloating = false;
+    }
 
     let onHidden: (() => void) | null = null;
     $: if (!showFloating) {
@@ -85,7 +88,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <WithFloating
-    show={showFloating && !disabled}
+    bind:show={showFloating}
     closeOnInsideClick
     inline
     on:close={() => (showFloating = false)}
