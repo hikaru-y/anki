@@ -19,6 +19,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { placeCaretAfter } from "../../domlib/place-caret";
     import { escapeSomeEntities, unescapeSomeEntities } from "../../editable/mathjax";
     import { Mathjax } from "../../editable/mathjax-element";
+    // import { isComposing } from "../../editable/frame-handle";
     import type { EditingInputAPI } from "../EditingArea.svelte";
     import HandleBackground from "../HandleBackground.svelte";
     import { context } from "../NoteEditor.svelte";
@@ -79,6 +80,13 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const code = writable("");
 
     function showOverlay(image: HTMLImageElement, pos?: CodeMirrorLib.Position) {
+        // if (isComposing) {
+        //     // This probably makes sense only if the following conditions are met:
+        //     // - <anki-frame> is the first element in the field
+        //     // - The caret is placed at the start of the field
+        //     return;
+        // }
+
         const [promise, allowResolve] = promiseWithResolver<void>();
 
         allowPromise = promise;
