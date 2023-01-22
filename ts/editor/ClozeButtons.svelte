@@ -83,7 +83,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         )})"
         {disabled}
         on:click={onIncrementCloze}
-        --border-left-radius="5px"
     >
         {@html incrementClozeIcon}
     </IconButton>
@@ -100,7 +99,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         )})"
         {disabled}
         on:click={onSameCloze}
-        --border-right-radius="5px"
     >
         {@html clozeIcon}
     </IconButton>

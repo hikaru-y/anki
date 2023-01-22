@@ -24,20 +24,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <ButtonGroup>
-    <LabelButton
-        primary
-        tooltip={getPlatformString(keyCombination)}
-        on:click={save}
-        --border-left-radius="5px"
-        --border-right-radius="5px"
-    >
+    <LabelButton primary tooltip={getPlatformString(keyCombination)} on:click={save}>
         <div class="save">{tr.actionsSave()}</div>
     </LabelButton>
     <Shortcut {keyCombination} on:action={save} />
 </ButtonGroup>
-
-<style lang="scss">
-    .save {
-        margin: 0.15rem 0.75rem;
-    }
-</style>

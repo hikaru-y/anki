@@ -3,6 +3,7 @@ Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
 <script lang="ts">
+    import ButtonGroup from "../components/ButtonGroup.svelte";
     import * as tr from "@tslib/ftl";
     import { withCollapsedWhitespace } from "@tslib/i18n";
     import { getPlatformString } from "@tslib/shortcuts";
@@ -67,51 +68,50 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     let showFloating = false;
 </script>
 
-<LabelButton
-    primary
-    on:click={() => save(false)}
-    tooltip={getPlatformString(saveKeyCombination)}
-    --border-left-radius={!rtl ? "var(--border-radius)" : "0"}
-    --border-right-radius={rtl ? "var(--border-radius)" : "0"}
->
-    <div class="save">{tr.deckConfigSaveButton()}</div>
-</LabelButton>
-<Shortcut keyCombination={saveKeyCombination} on:action={() => save(false)} />
-
-<WithFloating
-    show={showFloating}
-    closeOnInsideClick
-    inline
-    on:close={() => (showFloating = false)}
->
-    <IconButton
-        class="chevron"
-        slot="reference"
-        on:click={() => (showFloating = !showFloating)}
-        --border-right-radius={!rtl ? "var(--border-radius)" : "0"}
-        --border-left-radius={rtl ? "var(--border-radius)" : "0"}
-        iconSize={80}
+<ButtonGroup>
+    <LabelButton
+        primary
+        on:click={() => save(false)}
+        tooltip={getPlatformString(saveKeyCombination)}
     >
-        {@html chevronDown}
-    </IconButton>
-    <Popover slot="floating">
-        <DropdownItem on:click={() => dispatch("add")}
-            >{tr.deckConfigAddGroup()}</DropdownItem
+        {tr.deckConfigSaveButton()}
+    </LabelButton>
+    <Shortcut keyCombination={saveKeyCombination} on:action={() => save(false)} />
+
+    <WithFloating
+        show={showFloating}
+        closeOnInsideClick
+        inline
+        on:close={() => (showFloating = false)}
+    >
+        <IconButton
+            class="chevron"
+            slot="reference"
+            on:click={() => (showFloating = !showFloating)}
+            iconSize={80}
         >
-        <DropdownItem on:click={() => dispatch("clone")}
-            >{tr.deckConfigCloneGroup()}</DropdownItem
-        >
-        <DropdownItem on:click={() => dispatch("rename")}>
-            {tr.deckConfigRenameGroup()}
-        </DropdownItem>
-        <DropdownItem on:click={removeConfig}>{tr.deckConfigRemoveGroup()}</DropdownItem
-        >
-        <DropdownDivider />
-        <DropdownItem on:click={() => save(true)}>
-            {tr.deckConfigSaveToAllSubdecks()}
-        </DropdownItem>
-    </Popover>
-</WithFloating>
+            {@html chevronDown}
+        </IconButton>
+        <Popover slot="floating">
+            <DropdownItem on:click={() => dispatch("add")}
+                >{tr.deckConfigAddGroup()}</DropdownItem
+            >
+            <DropdownItem on:click={() => dispatch("clone")}
+                >{tr.deckConfigCloneGroup()}</DropdownItem
+            >
+            <DropdownItem on:click={() => dispatch("rename")}>
+                {tr.deckConfigRenameGroup()}
+            </DropdownItem>
+            <DropdownItem on:click={removeConfig}
+                >{tr.deckConfigRemoveGroup()}</DropdownItem
+            >
+            <DropdownDivider />
+            <DropdownItem on:click={() => save(true)}>
+                {tr.deckConfigSaveToAllSubdecks()}
+            </DropdownItem>
+        </Popover>
+    </WithFloating>
+</ButtonGroup>
 
 <style lang="scss">
     .save {

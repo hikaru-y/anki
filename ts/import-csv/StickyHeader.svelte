@@ -26,8 +26,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             primary
             tooltip={getPlatformString(keyCombination)}
             on:click={onImport}
-            --border-left-radius="5px"
-            --border-right-radius="5px"
         >
             <div class="import">{tr.actionsImport()}</div>
         </LabelButton>

@@ -13,11 +13,40 @@
 }
 
 @mixin border-radius {
-    border-top-left-radius: var(--border-left-radius);
-    border-bottom-left-radius: var(--border-left-radius);
+    // border-top-left-radius: var(--border-left-radius);
+    // border-bottom-left-radius: var(--border-left-radius);
 
-    border-top-right-radius: var(--border-right-radius);
-    border-bottom-right-radius: var(--border-right-radius);
+    // border-top-right-radius: var(--border-right-radius);
+    // border-bottom-right-radius: var(--border-right-radius);
+
+    $value: "var(--border-radius)";
+
+    .first-button {
+        :root:not(.rtl) & {
+            border-top-left-radius: $value;
+            border-bottom-left-radius: $value;
+        }
+        :root.rtl & {
+            border-top-right-radius: $value;
+            border-bottom-right-radius: $value;
+        }
+    }
+    .last-button {
+        :root:not(.rtl) & {
+            border-top-left-radius: $value;
+            border-bottom-left-radius: $value;
+        }
+        :root.rtl & {
+            border-top-right-radius: $value;
+            border-bottom-right-radius: $value;
+        }
+    }
+    .single-button {
+        border-top-left-radius: $value;
+        border-bottom-left-radius: $value;
+        border-top-right-radius: $value;
+        border-bottom-right-radius: $value;
+    }
 }
 
 @mixin background($primary: false, $hover: true) {

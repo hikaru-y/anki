@@ -6,6 +6,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import * as tr from "@tslib/ftl";
     import Carousel from "bootstrap/js/dist/carousel";
     import Modal from "bootstrap/js/dist/modal";
+    import ButtonGroup from "components/ButtonGroup.svelte";
+    import LabelButton from "components/LabelButton.svelte";
     import { createEventDispatcher, getContext, onMount } from "svelte";
 
     import Badge from "../components/Badge.svelte";
@@ -130,9 +132,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                 </Row>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" on:click={onOkClicked}
-                    >OK</button
-                >
+                <ButtonGroup>
+                    <LabelButton primary on:click={onOkClicked}>OK</LabelButton>
+                </ButtonGroup>
             </div>
         </div>
     </div>
