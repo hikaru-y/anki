@@ -72,6 +72,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import RichTextBadge from "./RichTextBadge.svelte";
     import SymbolsOverlay from "./symbols-overlay";
     import type { SessionOptions } from "./types";
+    import CollapseBadge from "./CollapseBadge.svelte";
 
     function quoteFontFamily(fontFamily: string): string {
         // generic families (e.g. sans-serif) must not be quoted
@@ -389,12 +390,12 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     let snapTags = $tagsCollapsed;
 
     function collapseTags(): void {
-        lowerResizer.move([tagsPane, fieldsPane], tagsPane.minHeight);
+        // lowerResizer.move([tagsPane, fieldsPane], tagsPane.minHeight);
         $tagsCollapsed = snapTags = true;
     }
 
     function expandTags(): void {
-        lowerResizer.move([tagsPane, fieldsPane], tagsPane.maxHeight);
+        // lowerResizer.move([tagsPane, fieldsPane], tagsPane.maxHeight);
         $tagsCollapsed = snapTags = false;
     }
 
@@ -435,229 +436,185 @@ the AddCards dialog) should be implemented in the user of this component.
         </Absolute>
     {/if}
 
-    <Pane
-        bind:this={fieldsPane.resizable}
-        on:resize={(e) => {
-            fieldsPane.height = e.detail.height;
-        }}
-    >
-        <PaneContent>
-            <Fields>
-                {#each fieldsData as field, index}
-                    {@const content = fieldStores[index]}
+    <Fields>
+        {#each fieldsData as field, index}
+            {@const content = fieldStores[index]}
 
-                    <EditorField
-                        {field}
-                        {content}
-                        flipInputs={plainTextDefaults[index]}
-                        api={fields[index]}
-                        on:focusin={() => {
-                            $focusedField = fields[index];
-                            bridgeCommand(`focus:${index}`);
-                        }}
-                        on:focusout={() => {
-                            $focusedField = null;
-                            bridgeCommand(
-                                `blur:${index}:${getNoteId()}:${transformContentBeforeSave(
-                                    get(content),
-                                )}`,
-                            );
-                        }}
-                        on:mouseenter={() => {
-                            $hoveredField = fields[index];
-                        }}
-                        on:mouseleave={() => {
-                            $hoveredField = null;
-                        }}
-                        collapsed={fieldsCollapsed[index]}
-                        dupe={cols[index] === "dupe"}
-                        --description-font-size="{field.fontSize}px"
-                        --description-content={`"${field.description}"`}
-                    >
-                        <svelte:fragment slot="field-label">
-                            <LabelContainer
-                                collapsed={fieldsCollapsed[index]}
-                                on:toggle={async () => {
-                                    fieldsCollapsed[index] = !fieldsCollapsed[index];
-
-                                    const defaultInput = !plainTextDefaults[index]
-                                        ? richTextInputs[index]
-                                        : plainTextInputs[index];
-
-                                    if (!fieldsCollapsed[index]) {
-                                        refocusInput(defaultInput.api);
-                                    } else if (!plainTextDefaults[index]) {
-                                        plainTextsHidden[index] = true;
-                                    } else {
-                                        richTextsHidden[index] = true;
-                                    }
-                                }}
-                                --icon-align="bottom"
-                            >
-                                <svelte:fragment slot="field-name">
-                                    <LabelName>
-                                        {field.name}
-                                    </LabelName>
-                                </svelte:fragment>
-                                <FieldState>
-                                    {#if cols[index] === "dupe"}
-                                        <DuplicateLink />
-                                    {/if}
-                                    {#if plainTextDefaults[index]}
-                                        <RichTextBadge
-                                            show={!fieldsCollapsed[index] &&
-                                                (fields[index] === $hoveredField ||
-                                                    fields[index] === $focusedField)}
-                                            bind:off={richTextsHidden[index]}
-                                            on:toggle={async () => {
-                                                richTextsHidden[index] =
-                                                    !richTextsHidden[index];
-
-                                                if (!richTextsHidden[index]) {
-                                                    refocusInput(
-                                                        richTextInputs[index].api,
-                                                    );
-                                                }
-                                            }}
-                                        />
-                                    {:else}
-                                        <PlainTextBadge
-                                            show={!fieldsCollapsed[index] &&
-                                                (fields[index] === $hoveredField ||
-                                                    fields[index] === $focusedField)}
-                                            bind:off={plainTextsHidden[index]}
-                                            on:toggle={async () => {
-                                                plainTextsHidden[index] =
-                                                    !plainTextsHidden[index];
-
-                                                if (!plainTextsHidden[index]) {
-                                                    refocusInput(
-                                                        plainTextInputs[index].api,
-                                                    );
-                                                }
-                                            }}
-                                        />
-                                    {/if}
-                                    <slot
-                                        name="field-state"
-                                        {field}
-                                        {index}
-                                        show={fields[index] === $hoveredField ||
-                                            fields[index] === $focusedField}
-                                    />
-                                </FieldState>
-                            </LabelContainer>
-                        </svelte:fragment>
-                        <svelte:fragment slot="rich-text-input">
-                            <Collapsible
-                                collapse={richTextsHidden[index]}
-                                let:collapsed={hidden}
-                                toggleDisplay
-                            >
-                                <RichTextInput
-                                    {hidden}
-                                    on:focusout={() => {
-                                        saveFieldNow();
-                                        $focusedInput = null;
-                                    }}
-                                    bind:this={richTextInputs[index]}
-                                />
-                            </Collapsible>
-                        </svelte:fragment>
-                        <svelte:fragment slot="plain-text-input">
-                            <Collapsible
-                                collapse={plainTextsHidden[index]}
-                                let:collapsed={hidden}
-                                toggleDisplay
-                            >
-                                <PlainTextInput
-                                    {hidden}
-                                    on:focusout={() => {
-                                        saveFieldNow();
-                                        $focusedInput = null;
-                                    }}
-                                    bind:this={plainTextInputs[index]}
-                                />
-                            </Collapsible>
-                        </svelte:fragment>
-                    </EditorField>
-                {/each}
-
-                <MathjaxOverlay />
-                <ImageOverlay maxWidth={250} maxHeight={125} />
-                {#if insertSymbols}
-                    <SymbolsOverlay />
-                {/if}
-            </Fields>
-        </PaneContent>
-    </Pane>
-
-    <HorizontalResizer
-        panes={[fieldsPane, tagsPane]}
-        showIndicator={$tagsCollapsed || snapTags}
-        tip={$tagsCollapsed
-            ? tr.editingDoubleClickToExpand()
-            : tr.editingDoubleClickToCollapse()}
-        {clientHeight}
-        bind:this={lowerResizer}
-        on:dblclick={() => snapResizer(!$tagsCollapsed)}
-        on:release={() => {
-            snapResizer(snapTags);
-        }}
-    >
-        <div class="tags-expander">
-            <TagAddButton
-                on:tagappend={() => {
-                    tagEditor.appendEmptyTag();
+            <EditorField
+                {field}
+                {content}
+                flipInputs={plainTextDefaults[index]}
+                api={fields[index]}
+                on:focusin={() => {
+                    $focusedField = fields[index];
+                    bridgeCommand(`focus:${index}`);
                 }}
-                keyCombination="Control+Shift+T"
+                on:focusout={() => {
+                    $focusedField = null;
+                    bridgeCommand(
+                        `blur:${index}:${getNoteId()}:${transformContentBeforeSave(
+                            get(content),
+                        )}`,
+                    );
+                }}
+                on:mouseenter={() => {
+                    $hoveredField = fields[index];
+                }}
+                on:mouseleave={() => {
+                    $hoveredField = null;
+                }}
+                collapsed={fieldsCollapsed[index]}
+                dupe={cols[index] === "dupe"}
+                --description-font-size="{field.fontSize}px"
+                --description-content={`"${field.description}"`}
             >
-                {@html tagAmount > 0 ? `${tagAmount} ${tr.editingTags()}` : ""}
-            </TagAddButton>
-        </div>
-    </HorizontalResizer>
+                <svelte:fragment slot="field-label">
+                    <LabelContainer
+                        collapsed={fieldsCollapsed[index]}
+                        on:toggle={async () => {
+                            fieldsCollapsed[index] = !fieldsCollapsed[index];
 
-    <Pane
-        bind:this={tagsPane.resizable}
-        on:resize={(e) => {
-            tagsPane.height = e.detail.height;
-            if (tagsPane.maxHeight > 0) {
-                snapTags = tagsPane.height < tagsPane.maxHeight / 2;
-            }
-        }}
-        --opacity={(() => {
-            if (!$tagsCollapsed) {
-                return 1;
-            } else {
-                return snapTags ? tagsPane.height / tagsPane.maxHeight : 1;
-            }
-        })()}
-    >
-        <PaneContent scroll={false}>
-            <TagEditor
-                {tags}
-                --button-opacity={snapTags ? 0 : 1}
-                bind:this={tagEditor}
-                on:tagsupdate={saveTags}
-                on:tagsFocused={() => {
+                            const defaultInput = !plainTextDefaults[index]
+                                ? richTextInputs[index]
+                                : plainTextInputs[index];
+
+                            if (!fieldsCollapsed[index]) {
+                                refocusInput(defaultInput.api);
+                            } else if (!plainTextDefaults[index]) {
+                                plainTextsHidden[index] = true;
+                            } else {
+                                richTextsHidden[index] = true;
+                            }
+                        }}
+                        --icon-align="bottom"
+                    >
+                        <svelte:fragment slot="field-name">
+                            <LabelName>
+                                {field.name}
+                            </LabelName>
+                        </svelte:fragment>
+                        <FieldState>
+                            {#if cols[index] === "dupe"}
+                                <DuplicateLink />
+                            {/if}
+                            {#if plainTextDefaults[index]}
+                                <RichTextBadge
+                                    show={!fieldsCollapsed[index] &&
+                                        (fields[index] === $hoveredField ||
+                                            fields[index] === $focusedField)}
+                                    bind:off={richTextsHidden[index]}
+                                    on:toggle={async () => {
+                                        richTextsHidden[index] =
+                                            !richTextsHidden[index];
+
+                                        if (!richTextsHidden[index]) {
+                                            refocusInput(richTextInputs[index].api);
+                                        }
+                                    }}
+                                />
+                            {:else}
+                                <PlainTextBadge
+                                    show={!fieldsCollapsed[index] &&
+                                        (fields[index] === $hoveredField ||
+                                            fields[index] === $focusedField)}
+                                    bind:off={plainTextsHidden[index]}
+                                    on:toggle={async () => {
+                                        plainTextsHidden[index] =
+                                            !plainTextsHidden[index];
+
+                                        if (!plainTextsHidden[index]) {
+                                            refocusInput(plainTextInputs[index].api);
+                                        }
+                                    }}
+                                />
+                            {/if}
+                            <slot
+                                name="field-state"
+                                {field}
+                                {index}
+                                show={fields[index] === $hoveredField ||
+                                    fields[index] === $focusedField}
+                            />
+                        </FieldState>
+                    </LabelContainer>
+                </svelte:fragment>
+                <svelte:fragment slot="rich-text-input">
+                    <Collapsible
+                        collapse={richTextsHidden[index]}
+                        let:collapsed={hidden}
+                        toggleDisplay
+                    >
+                        <RichTextInput
+                            {hidden}
+                            on:focusout={() => {
+                                saveFieldNow();
+                                $focusedInput = null;
+                            }}
+                            bind:this={richTextInputs[index]}
+                        />
+                    </Collapsible>
+                </svelte:fragment>
+                <svelte:fragment slot="plain-text-input">
+                    <Collapsible
+                        collapse={plainTextsHidden[index]}
+                        let:collapsed={hidden}
+                        toggleDisplay
+                    >
+                        <PlainTextInput
+                            {hidden}
+                            on:focusout={() => {
+                                saveFieldNow();
+                                $focusedInput = null;
+                            }}
+                            bind:this={plainTextInputs[index]}
+                        />
+                    </Collapsible>
+                </svelte:fragment>
+            </EditorField>
+        {/each}
+
+        <MathjaxOverlay />
+        <ImageOverlay maxWidth={250} maxHeight={125} />
+        {#if insertSymbols}
+            <SymbolsOverlay />
+        {/if}
+    </Fields>
+
+    <CollapseBadge collapsed={$tagsCollapsed} />
+
+    {#if $tagsCollapsed}
+        <TagAddButton
+            on:tagappend={() => {
+                tagEditor.appendEmptyTag();
+            }}
+            keyCombination="Control+Shift+T"
+        >
+            {@html tagAmount > 0 ? `${tagAmount} ${tr.editingTags()}` : ""}
+        </TagAddButton>
+    {:else}
+        <TagEditor
+            {tags}
+            --button-opacity={snapTags ? 0 : 1}
+            bind:this={tagEditor}
+            on:tagsupdate={saveTags}
+            on:tagsFocused={() => {
+                expandTags();
+                $tagsCollapsed = false;
+            }}
+            on:heightChange={(e) => {
+                tagsPane.maxHeight = e.detail.height;
+                if (!$tagsCollapsed) {
                     expandTags();
-                    $tagsCollapsed = false;
-                }}
-                on:heightChange={(e) => {
-                    tagsPane.maxHeight = e.detail.height;
-                    if (!$tagsCollapsed) {
-                        expandTags();
-                    }
-                }}
-            />
-        </PaneContent>
-    </Pane>
+                }
+            }}
+        />
+    {/if}
 </div>
 
 <style lang="scss">
     .note-editor {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        height: 100vh;
     }
 </style>
