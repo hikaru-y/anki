@@ -23,7 +23,7 @@
         "target": "es2019",
         "module": "es2020",
         "lib": [
-            "es2017",
+            "es2020",
             "es2018.intl",
             "es2018.promise",
             "es2019.array",
