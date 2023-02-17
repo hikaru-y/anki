@@ -63,3 +63,33 @@ export async function maybePreloadImages(html: string): Promise<void> {
         new Promise((r) => setTimeout(r, 100)),
     ]);
 }
+
+export function loadImage(src: string, promise = true): Promise<void> | void {
+    const img = new Image();
+    img.src = src;
+    if (promise) {
+        return imageLoaded(img);
+    }
+}
+
+// export async function preloadImages(fragment: DocumentFragment): Promise<void> {
+//     await Promise.all(
+//         (<HTMLImageElement[]> [...fragment.querySelectorAll("img[src]")]).map((img) => {
+//             const newimg = new Image();
+//             newimg.src = img.src;
+//             return imageLoaded(newimg);
+//         }),
+//     );
+// }
+
+/**
+ * prevent flickering & layout shift on image load
+ */
+export function preloadImages(fragment: DocumentFragment): Promise<void>[] {
+    const imgs = [...fragment.querySelectorAll("img[src]")] as HTMLImageElement[];
+    return imgs.map((img) => {
+        const newimg = new Image();
+        newimg.src = img.src;
+        return imageLoaded(newimg);
+    });
+}

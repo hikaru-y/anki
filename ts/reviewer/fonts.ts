@@ -4,22 +4,28 @@
 const htmlDoc = document.implementation.createHTMLDocument();
 const template = document.createElement("template");
 
-export async function preloadCustomFonts(html: string): Promise<void> {
+export function preloadCustomFonts(fragment: DocumentFragment): Promise<void>[] {
+    const styles = fragment.querySelectorAll("style");
+    const urls: string[] = [];
+    for (const style of styles) {
+        const clonedStyle = style.cloneNode(true) as HTMLStyleElement;
+        for (const rule of extractFontFaceRules(style)) {
+            urls.push(...extractUrls(rule));
+        }
+    }
+    return urls.map(injectPreloadLinkPromise);
+}
+
+export function extractCustomFontUrls(html: string): string[] {
     template.innerHTML = html;
     const styles = template.content.querySelectorAll("style");
     const urls: string[] = [];
-    console.log(urls);
     for (const style of styles) {
         for (const rule of extractFontFaceRules(style)) {
             urls.push(...extractUrls(rule));
         }
     }
-    if (urls.length) {
-        await Promise.race([
-            Promise.all(urls.map(injectPreloadLinkPromise)),
-            new Promise((r) => setTimeout(r, 2000)),
-        ]);
-    }
+    return urls;
 }
 
 function extractFontFaceRules(style: HTMLStyleElement): CSSFontFaceRule[] {
