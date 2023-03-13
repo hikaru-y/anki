@@ -38,7 +38,12 @@ button {
     padding-top: 10px;
 
     @media (max-width: 583px) {
-        display: none;
+        visibility: hidden;
+
+        .height-retrieval-done & {
+            display: none;
+        }
+
     }
 }
 
