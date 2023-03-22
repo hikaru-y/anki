@@ -65,6 +65,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     $: initialize($focusedInput);
 
     let activeImage: HTMLImageElement | null = null;
+    $: console.log(activeImage);
     let mathjaxElement: HTMLElement | null = null;
 
     let allowResubscription: Callback;

@@ -3,9 +3,11 @@ Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
 <script lang="ts">
+    import { getRange, getSelection } from "@tslib/cross-browser";
     import * as tr from "@tslib/ftl";
     import { getPlatformString } from "@tslib/shortcuts";
     import { wrapInternal } from "@tslib/wrap";
+    import { FrameEnd, FrameStart } from "editable/frame-handle";
 
     import DropdownItem from "../../components/DropdownItem.svelte";
     import IconButton from "../../components/IconButton.svelte";
@@ -23,11 +25,92 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     async function surround(front: string, back: string): Promise<void> {
         const element = await richTextAPI.element;
+        if (front.startsWith("<anki-mathjax")) {
+            const selection = getSelection(element)!;
+            const range = getRange(selection)!;
+            const maybeFrame = range.commonAncestorContainer.parentElement;
+            if (
+                range.collapsed &&
+                maybeFrame?.tagName.toLowerCase() === FrameStart.tagName
+            ) {
+                console.log(maybeFrame)
+                range.setEndBefore(maybeFrame);
+            }
+        }
         wrapInternal(element, front, back, false);
+    }
+
+    async function wrapWithMathjax({
+        block = false,
+        prefix = "",
+        suffix = "",
+    }: {
+        block?: boolean;
+        prefix?: string;
+        suffix?: string;
+    } = {}): Promise<void> {
+        const selection = getSelection(await richTextAPI.element)!;
+        const range = getRange(selection)!;
+        console.log(
+            range.startContainer,
+            range.startOffset,
+            range.endContainer,
+            range.endOffset,
+            range.commonAncestorContainer,
+            range.commonAncestorContainer.parentElement,
+            range.commonAncestorContainer.parentNode,
+        );
+
+        // convert &nbsp; to normal space
+        const text = selection.toString().replace(/\u00A0/g, " ");
+
+        const tmpl = document.createElement("template");
+        // tmpl.innerHTML = `${front}${text}${back}`;
+        const attrs = [
+            prefix ? `focusonmount="0,${prefix.length}"` : "focusonmount",
+            block ? `block="true"` : null,
+        ]
+            .filter(Boolean)
+            .join(" ");
+        tmpl.innerHTML = `<div></div><anki-mathjax ${attrs}>${prefix}${text}${suffix}</anki-mathjax>`;
+
+        // just in case the caret is positioned just before/after another <anki-mathjax>
+        const maybeFrame = range.commonAncestorContainer.parentElement;
+        if (maybeFrame?.tagName.toLowerCase() === FrameStart.tagName) {
+            // maybeFrame.before(spacer);
+            // range.setEndBefore(spacer);
+            // range.setEndBefore(maybeFrame);
+            maybeFrame.before(tmpl.content);
+            return;
+        } else if (maybeFrame?.tagName.toLowerCase() === FrameEnd.tagName) {
+            // console.log(range.startOffset, range.endOffset, range.collapsed);
+            // range.setStartAfter(maybeFrame);
+            // range.collapse(true);
+            // console.log(range.startOffset, range.endOffset, range.collapsed);
+            maybeFrame.after(tmpl.content);
+            return;
+        }
+        // await new Promise((r) => setTimeout(r, 500));
+
+        // selection.deleteFromDocument();
+
+        // document.execCommand("inserthtml", false, tmpl.innerHTML);
+
+        range.deleteContents();
+        // const dummy = document.createTextNode(" ");
+        // range.insertNode(dummy);
+        // selection.collapseToEnd();
+        range.insertNode(tmpl.content);
+        // document.execCommand("inserthtml", false, tmpl.innerHTML);
+        // selection.removeAllRanges();
+        // selection.addRange(range);
+        selection.collapseToEnd();
     }
 
     function onMathjaxInline(): void {
         if (mathjaxConfig.enabled) {
+            // wrapWithMathjax("<anki-mathjax focusonmount>", "</anki-mathjax>");
+            // wrapWithMathjax();
             surround("<anki-mathjax focusonmount>", "</anki-mathjax>");
         } else {
             surround("\\(", "\\)");
@@ -36,6 +119,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     function onMathjaxBlock(): void {
         if (mathjaxConfig.enabled) {
+            // wrapWithMathjax(
+            //     '<anki-mathjax block="true" focusonmount>',
+            //     "</anki-matjax>",
+            // );
+            // wrapWithMathjax({ block: true });
             surround('<anki-mathjax block="true" focusonmount>', "</anki-matjax>");
         } else {
             surround("\\[", "\\]");
@@ -44,6 +132,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     function onMathjaxChemistry(): void {
         if (mathjaxConfig.enabled) {
+            // wrapWithMathjax(
+            //     '<anki-mathjax focusonmount="0,4">\\ce{',
+            //     "}</anki-mathjax>",
+            // );
+            // wrapWithMathjax({ prefix: "\\ce{", suffix: "}" });
             surround('<anki-mathjax focusonmount="0,4">\\ce{', "}</anki-mathjax>");
         } else {
             surround("\\(\\ce{", "}\\)");
