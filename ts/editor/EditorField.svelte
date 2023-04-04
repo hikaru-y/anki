@@ -21,6 +21,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         element: Promise<HTMLElement>;
         direction: Readable<"ltr" | "rtl">;
         editingArea: EditingAreaAPI;
+        undoStack: UndoRedoStack;
     }
 
     import { registerPackage } from "@tslib/runtime-require";
@@ -52,6 +53,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import Collapsible from "../components/Collapsible.svelte";
     import type { Destroyable } from "./destroyable";
     import EditingArea from "./EditingArea.svelte";
+    import { context as noteEditorContext } from "./NoteEditor.svelte";
+    import { UndoRedoStack } from "./undo";
 
     export let content: Writable<string>;
     export let field: FieldData;
@@ -59,6 +62,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export let flipInputs = false;
     export let dupe = false;
 
+    const { focusedInput } = noteEditorContext.get();
+    const undoStack = new UndoRedoStack(content, () => $focusedInput?.refocus());
     const directionStore = writable<"ltr" | "rtl">();
     setContext(directionKey, directionStore);
 
@@ -79,12 +84,17 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         element,
         direction: directionStore,
         editingArea: editingArea as EditingAreaAPI,
+        undoStack,
     });
 
     setContextProperty(api);
     setupLifecycleHooks(api);
 
-    onDestroy(() => api?.destroy());
+    onDestroy(() => {
+        console.log(api, api?.destroy);
+        api?.destroy();
+        undoStack.destroy();
+    });
 </script>
 
 <div class="field-container" on:mouseenter on:mouseleave>
