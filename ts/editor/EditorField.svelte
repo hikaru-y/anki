@@ -36,6 +36,13 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     export { context };
 
+    const undoStacks: Set<UndoRedoStack> = new Set();
+    export function resetUndoStacks(): void {
+        for (const stack of undoStacks) {
+            stack.reset();
+        }
+    }
+
     registerPackage("anki/EditorField", {
         context,
         lifecycle,
@@ -64,6 +71,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     const { focusedInput } = noteEditorContext.get();
     const undoStack = new UndoRedoStack(content, () => $focusedInput?.refocus());
+    undoStacks.add(undoStack);
     const directionStore = writable<"ltr" | "rtl">();
     setContext(directionKey, directionStore);
 
@@ -91,9 +99,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     setupLifecycleHooks(api);
 
     onDestroy(() => {
-        console.log(api, api?.destroy);
         api?.destroy();
         undoStack.destroy();
+        undoStacks.delete(undoStack);
     });
 </script>
 
