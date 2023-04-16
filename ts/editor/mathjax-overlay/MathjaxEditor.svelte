@@ -15,6 +15,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { baseOptions, focusAndSetCaret, latex } from "../code-mirror";
     import type { CodeMirrorAPI } from "../CodeMirror.svelte";
     import CodeMirror from "../CodeMirror.svelte";
+    import { saveNowSignal } from "../NoteEditor.svelte";
 
     export let code: Writable<string>;
     export let acceptShortcut: string;
@@ -94,6 +95,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             }
         });
     });
+
+    $: $saveNowSignal, dispatch("close");
 </script>
 
 <div class="mathjax-editor" class:light-theme={!$pageTheme.isDark}>

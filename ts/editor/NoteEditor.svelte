@@ -29,8 +29,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const key = Symbol("noteEditor");
     const [context, setContextProperty] = contextProperty<NoteEditorAPI>(key);
     const [lifecycle, instances, setupLifecycleHooks] = lifecycleHooks<NoteEditorAPI>();
+    const saveNowSignal = writable(Symbol());
 
-    export { context };
+    export { context, saveNowSignal };
 
     registerPackage("anki/NoteEditor", {
         context,
@@ -287,6 +288,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     function saveNow(): void {
+        // close MathJax editor if open
+        saveNowSignal.set(Symbol());
+
         $commitTagEdits();
         saveFieldNow();
     }
