@@ -8,6 +8,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { isArrowLeft, isArrowRight } from "@tslib/keys";
     import { getPlatformString } from "@tslib/shortcuts";
     import type CodeMirrorLib from "codemirror";
+    import { functionIcon } from "editor/editor-toolbar/icons";
     import { createEventDispatcher, onMount } from "svelte";
     import type { Writable } from "svelte/store";
 
@@ -96,10 +97,37 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         });
     });
 
+    /**
+     * Prevents MathJax editor from closing when the mouse button is released
+     * outside the MathJax editor while selecting text. Calls `stopPropagation()`
+     * in the capturing phase to prevent `updateFloating()` in `<WithFloating>`
+     * from being triggered.
+     */
+    function preventClose(event: MouseEvent) {
+        if (event.button === 0) {
+            document.addEventListener(
+                "click",
+                (evt) => {
+                    if (
+                        !(evt.target instanceof HTMLElement) ||
+                        !evt.target.closest(".mathjax-editor")
+                    ) {
+                        evt.stopPropagation();
+                    }
+                },
+                { capture: true, once: true },
+            );
+        }
+    }
+
     $: $saveNowSignal, dispatch("close");
 </script>
 
-<div class="mathjax-editor" class:light-theme={!$pageTheme.isDark}>
+<div
+    class="mathjax-editor"
+    class:light-theme={!$pageTheme.isDark}
+    on:mousedown={preventClose}
+>
     <CodeMirror
         {code}
         {configuration}
