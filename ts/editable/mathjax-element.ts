@@ -139,6 +139,7 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
     }
 
     undecorate(): void {
+        console.log("mathjax undecorate");
         if (this.parentElement?.tagName === FrameElement.tagName.toUpperCase()) {
             this.parentElement.replaceWith(this);
         }

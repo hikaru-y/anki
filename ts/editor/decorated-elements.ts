@@ -7,6 +7,7 @@ import { CustomElementArray } from "../editable/decorated";
 import { FrameElement } from "../editable/frame-element";
 import { FrameEnd, FrameStart } from "../editable/frame-handle";
 import { Mathjax } from "../editable/mathjax-element";
+import { Sound } from "../editable/sound-element";
 import { parsingInstructions } from "./plain-text-input";
 
 const decoratedElements = new CustomElementArray();
@@ -26,7 +27,12 @@ function registerFrameElement() {
     BLOCK_ELEMENTS.push(FrameEnd.tagName.toUpperCase());
 }
 
+function registerSound() {
+    decoratedElements.push(Sound);
+}
+
 registerMathjax();
 registerFrameElement();
+registerSound();
 
 export { decoratedElements };
