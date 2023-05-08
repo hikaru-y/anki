@@ -1,47 +1,51 @@
 // Copyright: Ankitects Pty Ltd and contributors
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
-type CssElementType = HTMLStyleElement | HTMLLinkElement;
+type CSSElement = HTMLStyleElement | HTMLLinkElement;
 
-const preloadCssClassName = "preload-css";
 const template = document.createElement("template");
 
-export async function maybePreloadExternalCss(html: string): Promise<void> {
-    clearPreloadedCss();
+export async function preloadExternalResources(html: string): Promise<void> {
     template.innerHTML = html;
-    const externalCssElements = extractExternalCssElements(template.content);
-    if (externalCssElements.length) {
-        await Promise.race([
-            Promise.all(externalCssElements.map(injectAndLoadCss)),
-            new Promise((r) => setTimeout(r, 500)),
-        ]);
+    const fragment = template.content;
+    const cssPromises = preloadExternalCSSs(fragment);
+    if (cssPromises.length) {
+        await Promise.race(
+            [Promise.all(cssPromises), new Promise((r) => setTimeout(r, 400))],
+        );
     }
 }
 
-function clearPreloadedCss(): void {
-    [...document.head.getElementsByClassName(preloadCssClassName)].forEach((css) => css.remove());
+function loadResource(element: HTMLElement): Promise<void> {
+    return new Promise((resolve) => {
+        function resolveAndDelete(): void {
+            resolve();
+            document.head.removeChild(element);
+        }
+        element.addEventListener("load", resolveAndDelete);
+        element.addEventListener("error", resolveAndDelete);
+        document.head.appendChild(element);
+    });
 }
 
-function extractExternalCssElements(fragment: DocumentFragment): CssElementType[] {
-    return <CssElementType[]> (
-        [...fragment.querySelectorAll("style, link")].filter(
-            (css) =>
-                (css instanceof HTMLStyleElement
-                    && css.innerHTML.includes("@import"))
-                || (css instanceof HTMLLinkElement && css.rel === "stylesheet"),
-        )
+// CSS preloading
+
+function extractExternalCSSs(fragment: DocumentFragment): CSSElement[] {
+    return ([...fragment.querySelectorAll("style, link")] as CSSElement[]).filter(
+        (css) =>
+            (css instanceof HTMLStyleElement
+                && css.innerHTML.includes("@import"))
+            || (css instanceof HTMLLinkElement && css.rel === "stylesheet"),
     );
 }
 
-function injectAndLoadCss(css: CssElementType): Promise<void> {
-    return new Promise((resolve) => {
-        css.classList.add(preloadCssClassName);
-
-        // this prevents the css from affecting the page rendering
+/** Prevent FOUC */
+function preloadExternalCSSs(fragment: DocumentFragment): Promise<void>[] {
+    const promises = extractExternalCSSs(fragment).map((css) => {
+        // prevent the CSS from affecting the page rendering
         css.media = "print";
 
-        css.addEventListener("load", () => resolve());
-        css.addEventListener("error", () => resolve());
-        document.head.appendChild(css);
+        return loadResource(css);
     });
+    return promises;
 }
