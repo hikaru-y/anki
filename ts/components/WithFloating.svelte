@@ -12,12 +12,17 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { singleCallback } from "@tslib/typing";
     import { createEventDispatcher, onDestroy, setContext } from "svelte";
     import type { ActionReturn } from "svelte/action";
-    import { writable } from "svelte/store";
+    import type { Readable } from "svelte/store";
+    import { derived, writable } from "svelte/store";
 
     import isClosingClick from "../sveltelib/closing-click";
     import isClosingKeyup from "../sveltelib/closing-keyup";
     import type { EventPredicateResult } from "../sveltelib/event-predicate";
-    import { documentClick, documentKeyup } from "../sveltelib/event-store";
+    import {
+        documentClick,
+        documentKeydownInCapturingPhase,
+        documentKeyup,
+    } from "../sveltelib/event-store";
     import portal from "../sveltelib/portal";
     import type { PositioningCallback } from "../sveltelib/position/auto-update";
     import autoUpdate from "../sveltelib/position/auto-update";
@@ -141,10 +146,24 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             outside: true,
         });
 
+        const closingEscapeKey = derived<Readable<KeyboardEvent>, EventPredicateResult>(
+            documentKeydownInCapturingPhase,
+            (evt, set): void => {
+                if (evt.key === "Escape") {
+                    set({ reason: "escape key", originalEvent: evt });
+                }
+            },
+        );
+
         const subscribers = [
             subscribeToUpdates(closingClick, (event: EventPredicateResult) =>
                 dispatch("close", event),
             ),
+            subscribeToUpdates(closingEscapeKey, (event: EventPredicateResult) => {
+                // prevent Qt's default behavior
+                event.originalEvent.stopPropagation();
+                dispatch("close", event);
+            }),
         ];
 
         if (!keepOnKeyup) {

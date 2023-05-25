@@ -11,7 +11,8 @@ type Init<T> = { new(type: string): T; prototype: T };
 
 /**
  * A store wrapping an event. Automatically adds/removes event handler upon
- * first/last subscriber.
+ * first/last subscriber. If `{capture: true}` is passed to `options`, we can
+ * cancel Qt's default behavior by calling `stopPropagation()`.
  *
  * @remarks
  * Should probably always be used in conjunction with `subscribeToUpdates`.
@@ -24,11 +25,12 @@ function eventStore<T extends EventTarget, K extends keyof EventTargetToMap<T>>(
      * constructed event, e.g. `new MouseEvent("click")`.
      */
     constructor: Init<EventTargetToMap<T>[K]>,
+    options?: AddEventListenerOptions,
 ): Readable<EventTargetToMap<T>[K]> {
     const initEvent = new constructor(eventType);
     return readable(
         initEvent,
-        (set: Subscriber<EventTargetToMap<T>[K]>): Callback => on(target, eventType, set),
+        (set: Subscriber<EventTargetToMap<T>[K]>): Callback => on(target, eventType, set, options),
     );
 }
 
@@ -60,6 +62,7 @@ function mouseClickWithoutDragStore(): Readable<MouseEvent> {
             document.addEventListener("mousedown", onMouseDown);
             document.addEventListener("click", onClick);
             return () => {
+                console.log("mouseClickWithoutDragStore");
                 document.removeEventListener("click", onClick);
                 document.removeEventListener("mousedown", onMouseDown);
             };
@@ -67,7 +70,33 @@ function mouseClickWithoutDragStore(): Readable<MouseEvent> {
     );
 }
 
+/**
+ * Returns a store that allows subscribers to handle keydown event of the escape key
+ * in the capturing phase. Intended to be used to override Qt's default behavior by
+ * calling stopPropagation() in the handler.
+ */
+// function keydownEscapeInCapturingPhaseStore(): Readable<KeyboardEvent> {
+//     const initEvent = new KeyboardEvent("keydown");
+
+//     return readable(
+//         initEvent,
+//         (set: Subscriber<KeyboardEvent>) => {
+//             function onKeydown(evt: KeyboardEvent) {
+//                 if (evt.key === "Escape") {
+//                     set(evt);
+//                 }
+//             }
+//             const opts: EventListenerOptions = { capture: true };
+//             document.addEventListener("keydown", onKeydown, opts);
+//             return () => {
+//                 document.removeEventListener("keydown", onKeydown, opts);
+//             };
+//         },
+//     );
+// }
+
 const documentClick = mouseClickWithoutDragStore();
 const documentKeyup = eventStore(document, "keyup", KeyboardEvent);
+const documentKeydownInCapturingPhase = eventStore(document, "keydown", KeyboardEvent, { capture: true });
 
-export { documentClick, documentKeyup };
+export { documentClick, documentKeydownInCapturingPhase, documentKeyup };

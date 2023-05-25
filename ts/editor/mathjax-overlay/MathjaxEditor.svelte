@@ -51,10 +51,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         editor.on(
             "keydown",
             (_instance: CodeMirrorLib.Editor, event: KeyboardEvent): void => {
-                if (event.key === "Escape") {
-                    dispatch("close");
-                    event.stopPropagation();
-                } else if (isArrowLeft(event)) {
+                if (isArrowLeft(event)) {
                     direction = "start";
                 } else if (isArrowRight(event)) {
                     direction = "end";
