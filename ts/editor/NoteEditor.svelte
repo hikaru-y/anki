@@ -42,6 +42,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 <script lang="ts">
     import { bridgeCommand } from "@tslib/bridgecommand";
     import * as tr from "@tslib/ftl";
+    import { isEqual } from "lodash-es";
     import { onMount, tick } from "svelte";
     import { get, writable } from "svelte/store";
 
@@ -67,7 +68,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import RichTextInput, { editingInputIsRichText } from "./rich-text-input";
     import RichTextBadge from "./RichTextBadge.svelte";
     import SymbolsOverlay from "./symbols-overlay";
-    import type { SessionOptions } from "./types";
+    import type { ObservedFieldsOpts, SessionStateByNotetype } from "./types";
 
     function quoteFontFamily(fontFamily: string): string {
         // generic families (e.g. sans-serif) must not be quoted
@@ -79,20 +80,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     const size = 1.6;
     const wrap = true;
-
-    const sessionOptions: SessionOptions = {};
-    export function saveSession(): void {
-        if (notetypeId) {
-            sessionOptions[notetypeId] = {
-                fieldsCollapsed,
-                fieldStates: {
-                    richTextsHidden,
-                    plainTextsHidden,
-                    plainTextDefaults,
-                },
-            };
-        }
-    }
+    const stateByNotetype: SessionStateByNotetype = {};
 
     const fieldStores: Writable<string>[] = [];
     let fieldNames: string[] = [];
@@ -129,27 +117,67 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         fieldNames = newFieldNames;
     }
 
-    let fieldsCollapsed: boolean[] = [];
-    export function setCollapsed(defaultCollapsed: boolean[]): void {
-        fieldsCollapsed =
-            sessionOptions[notetypeId!]?.fieldsCollapsed ?? defaultCollapsed;
+    /** Save the state of the notetype of the previous note */
+    function saveSessionState(): void {
+        if (notetypeId) {
+            stateByNotetype[notetypeId] = {
+                ...(stateByNotetype[notetypeId] ?? {}),
+                fieldsState: {
+                    fieldsCollapsed,
+                    plainTextsHidden,
+                    richTextsHidden,
+                },
+            };
+        }
     }
 
+    /**
+     * If any of the ObservedFieldsOpts are changed in the notetype of the newly
+     * loaded note, discard the saved FieldsState for the notetype.
+     */
+    function maybeResetSessionState({
+        observedFieldsOpts,
+        newNotetypeId,
+    }: {
+        observedFieldsOpts: ObservedFieldsOpts;
+        newNotetypeId: number;
+    }): void {
+        if (
+            stateByNotetype[newNotetypeId]?.observedFieldsOpts &&
+            !isEqual(
+                stateByNotetype[newNotetypeId].observedFieldsOpts,
+                observedFieldsOpts,
+            )
+        ) {
+            delete stateByNotetype[newNotetypeId]?.fieldsState;
+        }
+
+        stateByNotetype[newNotetypeId] = {
+            ...(stateByNotetype[newNotetypeId] ?? {}),
+            observedFieldsOpts,
+        };
+    }
+
+    let fieldsCollapsed: boolean[] = [];
     let richTextsHidden: boolean[] = [];
     let plainTextsHidden: boolean[] = [];
     let plainTextDefaults: boolean[] = [];
 
-    export function setPlainTexts(defaultPlainTexts: boolean[]): void {
-        const states = sessionOptions[notetypeId!]?.fieldStates;
-        if (states) {
-            richTextsHidden = states.richTextsHidden;
-            plainTextsHidden = states.plainTextsHidden;
-            plainTextDefaults = states.plainTextDefaults;
+    function setFieldsState({
+        collapsedByDefault,
+        plainTextsByDefault,
+    }: Pick<ObservedFieldsOpts, "collapsedByDefault" | "plainTextsByDefault">): void {
+        const state = notetypeId ? stateByNotetype[notetypeId].fieldsState : null;
+        if (state) {
+            fieldsCollapsed = state.fieldsCollapsed;
+            richTextsHidden = state.richTextsHidden;
+            plainTextsHidden = state.plainTextsHidden;
         } else {
-            plainTextDefaults = defaultPlainTexts;
-            richTextsHidden = [...defaultPlainTexts];
-            plainTextsHidden = Array.from(defaultPlainTexts, (v) => !v);
+            fieldsCollapsed = collapsedByDefault;
+            richTextsHidden = plainTextsByDefault;
+            plainTextsHidden = plainTextsByDefault.map((v) => !v);
         }
+        plainTextDefaults = plainTextsByDefault;
     }
 
     export function triggerChanges(): void {
@@ -381,10 +409,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         Object.assign(globalThis, {
-            saveSession,
             setFields,
-            setCollapsed,
-            setPlainTexts,
+            saveSessionState,
+            maybeResetSessionState,
+            setFieldsState,
             setDescriptions,
             setFonts,
             focusField,

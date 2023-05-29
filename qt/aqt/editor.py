@@ -506,9 +506,21 @@ require("anki/ui").loaded.then(() => require("anki/NoteEditor").instances[0].too
         ]
 
         flds = self.note.note_type()["flds"]
-        collapsed = [fld["collapsed"] for fld in flds]
-        plain_texts = [fld.get("plainText", False) for fld in flds]
         descriptions = [fld.get("description", "") for fld in flds]
+        collapsed_by_default = [fld["collapsed"] for fld in flds]
+        plain_texts_by_default = [fld.get("plainText", False) for fld in flds]
+        default_fields_state = {
+            "collapsedByDefault": collapsed_by_default,
+            "plainTextsByDefault": plain_texts_by_default,
+        }
+        session_args = {
+            "newNotetypeId": self.note.mid,
+            "observedFieldsOpts": {
+                "fieldNames": self.note.keys(),
+                "collapsedByDefault": collapsed_by_default,
+                "plainTextsByDefault": plain_texts_by_default,
+            },
+        }
 
         self.widget.show()
 
@@ -529,11 +541,11 @@ require("anki/ui").loaded.then(() => require("anki/NoteEditor").instances[0].too
         highlight_color = self.mw.pm.profile.get("lastHighlightColor", "#0000ff")
 
         js = f"""
-            saveSession();
+            saveSessionState();
+            maybeResetSessionState({json.dumps(session_args)});
             setFields({json.dumps(data)});
             setNotetypeId({json.dumps(self.note.mid)});
-            setCollapsed({json.dumps(collapsed)});
-            setPlainTexts({json.dumps(plain_texts)});
+            setFieldsState({json.dumps(default_fields_state)});
             setDescriptions({json.dumps(descriptions)});
             setFonts({json.dumps(self.fonts())});
             focusField({json.dumps(focusTo)});

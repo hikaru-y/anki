@@ -1,15 +1,23 @@
 // Copyright: Ankitects Pty Ltd and contributors
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
-export type EditorOptions = {
+type FieldsState = {
     fieldsCollapsed: boolean[];
-    fieldStates: {
-        richTextsHidden: boolean[];
-        plainTextsHidden: boolean[];
-        plainTextDefaults: boolean[];
-    };
+    plainTextsHidden: boolean[];
+    richTextsHidden: boolean[];
 };
 
-export type SessionOptions = {
-    [key: number]: EditorOptions;
+export type ObservedFieldsOpts = {
+    fieldNames: string[];
+    collapsedByDefault: boolean[];
+    plainTextsByDefault: boolean[];
+};
+
+type SessionState = {
+    fieldsState?: FieldsState;
+    observedFieldsOpts?: ObservedFieldsOpts;
+};
+
+export type SessionStateByNotetype = {
+    [key: number]: SessionState;
 };
