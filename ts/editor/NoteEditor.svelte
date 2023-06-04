@@ -28,7 +28,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     const key = Symbol("noteEditor");
     const [context, setContextProperty] = contextProperty<NoteEditorAPI>(key);
-    const [lifecycle, instances, setupLifecycleHooks] = lifecycleHooks<NoteEditorAPI>();
+    const [lifecycle, instances, setupLifecycleHooks] =
+        lifecycleHooks<NoteEditorAPI>();
 
     export { context };
 
@@ -42,73 +43,198 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 <script lang="ts">
     import { bridgeCommand } from "@tslib/bridgecommand";
     import * as tr from "@tslib/ftl";
+    import { wrapInternal } from "@tslib/wrap";
+    import { isEqual } from "lodash-es";
     import { onMount, tick } from "svelte";
     import { get, writable } from "svelte/store";
 
     import Absolute from "../components/Absolute.svelte";
     import Badge from "../components/Badge.svelte";
+    import Shortcut from "../components/Shortcut.svelte";
+    import { mathjaxConfig } from "../editable/mathjax-element";
     import { TagEditor } from "../tag-editor";
     import { commitTagEdits } from "../tag-editor/TagInput.svelte";
     import { ChangeTimer } from "./change-timer";
+    import CollapseLabel from "./CollapseLabel.svelte";
     import { clearableArray } from "./destroyable";
     import DuplicateLink from "./DuplicateLink.svelte";
     import EditorToolbar from "./editor-toolbar";
-    import type { FieldData } from "./EditorField.svelte";
     import EditorField from "./EditorField.svelte";
     import Fields from "./Fields.svelte";
+    import { quoteFontFamily } from "./helpers";
     import { alertIcon } from "./icons";
     import ImageOverlay from "./image-overlay";
     import { shrinkImagesByDefault } from "./image-overlay/ImageOverlay.svelte";
     import MathjaxOverlay from "./mathjax-overlay";
     import Notification from "./Notification.svelte";
+    import * as oldEditorAdapter from "./old-editor-adapter";
     import PlainTextInput from "./plain-text-input";
     import { closeHTMLTags } from "./plain-text-input/PlainTextInput.svelte";
     import PlainTextBadge from "./PlainTextBadge.svelte";
     import RichTextInput, { editingInputIsRichText } from "./rich-text-input";
     import RichTextBadge from "./RichTextBadge.svelte";
     import SymbolsOverlay from "./symbols-overlay";
-    import type { SessionOptions } from "./types";
-
-    function quoteFontFamily(fontFamily: string): string {
-        // generic families (e.g. sans-serif) must not be quoted
-        if (!/^[-a-z]+$/.test(fontFamily)) {
-            fontFamily = `"${fontFamily}"`;
-        }
-        return fontFamily;
-    }
+    import type {
+        EditorOpts,
+        EditorState,
+        FieldData,
+        FieldsOpts,
+        FieldsState,
+        Note,
+        Notetype,
+        ObservedFieldsData,
+        ObservedFieldsDataByNotetype,
+        StateByNotetype,
+    } from "./types";
 
     const size = 1.6;
     const wrap = true;
+    const fieldStores: Writable<string>[] = [];
+    const fields = clearableArray<EditorFieldAPI>();
+    const tags = writable<string[]>([]);
+    const tagsCollapsed = writable<boolean>();
+    const fieldSave = new ChangeTimer();
+    const stateByNotetype: StateByNotetype = {};
 
-    const sessionOptions: SessionOptions = {};
-    export function saveSession(): void {
+    let noteId: number | null = null;
+    let notetypeId: number | null = null;
+    let insertSymbols = false;
+    let fieldsData: FieldData[] = [];
+
+    // class NotetypeSessionManager {
+    //     stateByNotetype: StateByNotetype = {};
+    //     observedFieldsDataByNotetype: ObservedFieldsDataByNotetype = {};
+
+    //     /** Save the state of the previous note's notetype */
+    //     saveState(): void {
+    //         if (!notetypeId) {
+    //             return;
+    //         }
+    //         this.stateByNotetype[notetypeId] = {
+    //             fieldsCollapsed: fieldsData.map((fld) => fld.state.fieldCollapsed),
+    //             plainTextsHidden: fieldsData.map((fld) => fld.state.plainTextHidden),
+    //             richTextsHidden: fieldsData.map((fld) => fld.state.richTextHidden),
+    //         };
+    //     }
+
+    //     getState({
+    //         newNotetypeId,
+    //         observedFieldsData,
+    //     }: {
+    //         newNotetypeId: number;
+    //         observedFieldsData: ObservedFieldsData;
+    //     }): FieldsState {
+    //         const { collapsedByDefault, plainTextsByDefault } = observedFieldsData;
+    //         if (
+    //             !this.stateByNotetype[newNotetypeId] ||
+    //             !this.observedFieldsDataByNotetype[newNotetypeId] ||
+    //             !isEqual(
+    //                 this.observedFieldsDataByNotetype[newNotetypeId],
+    //                 observedFieldsData,
+    //             )
+    //         ) {
+    //             console.log(9897979);
+    //             this.stateByNotetype[newNotetypeId] = {
+    //                 fieldsCollapsed: collapsedByDefault,
+    //                 plainTextsHidden: plainTextsByDefault.map((v) => !v),
+    //                 richTextsHidden: plainTextsByDefault,
+    //             };
+    //         }
+
+    //         this.observedFieldsDataByNotetype[newNotetypeId] = {
+    //             ...observedFieldsData,
+    //         };
+
+    //         return this.stateByNotetype[newNotetypeId];
+    //     }
+    // }
+
+    // const sessionManager = new NotetypeSessionManager();
+
+    /** Save the state of the notetype of the previous note */
+    function saveSessionState(): void {
         if (notetypeId) {
-            sessionOptions[notetypeId] = {
-                fieldsCollapsed,
-                fieldStates: {
-                    richTextsHidden,
-                    plainTextsHidden,
-                    plainTextDefaults,
+            stateByNotetype[notetypeId] = {
+                ...(stateByNotetype[notetypeId] ?? {}),
+                fieldsState: {
+                    fieldsCollapsed: fieldsData.map(
+                        (field) => field.state.fieldCollapsed
+                    ),
+                    plainTextsHidden: fieldsData.map(
+                        (field) => field.state.plainTextHidden
+                    ),
+                    richTextsHidden: fieldsData.map(
+                        (field) => field.state.richTextHidden
+                    ),
                 },
             };
         }
     }
-
-    const fieldStores: Writable<string>[] = [];
-    let fieldNames: string[] = [];
-    export function setFields(fs: [string, string][]): void {
-        // this is a bit of a mess -- when moving to Rust calls, we should make
-        // sure to have two backend endpoints for:
-        // * the note, which can be set through this view
-        // * the fieldname, font, etc., which cannot be set
-
-        const newFieldNames: string[] = [];
-
-        for (const [index, [fieldName]] of fs.entries()) {
-            newFieldNames[index] = fieldName;
+    /**
+     * If any of the ObservedFieldsData are changed in the notetype of the newly
+     * loaded note, discard the saved FieldsState for the notetype.
+     */
+    function maybeResetSessionState({
+        observedFieldsData,
+        newNotetypeId,
+    }: {
+        observedFieldsData: ObservedFieldsData;
+        newNotetypeId: number;
+    }): void {
+        if (
+            stateByNotetype[newNotetypeId]?.observedFieldsData &&
+            !isEqual(
+                stateByNotetype[newNotetypeId].observedFieldsData,
+                observedFieldsData
+            )
+        ) {
+            delete stateByNotetype[newNotetypeId]?.fieldsState;
         }
+        stateByNotetype[newNotetypeId] = {
+            ...stateByNotetype[newNotetypeId],
+            observedFieldsData,
+        };
+        console.log(stateByNotetype[newNotetypeId]);
+    }
 
-        for (let i = fieldStores.length; i < newFieldNames.length; i++) {
+    export async function loadData({
+        closeHTMLTags: _closeHTMLTags,
+        contents,
+        collapsedByDefault,
+        plainTextsByDefault,
+        descriptions,
+        directions,
+        fieldNames,
+        fieldToFocus,
+        fontFamilies,
+        fontSizes,
+        mathjaxEnabled,
+        mid,
+        nid,
+        shrinkImages,
+        symbolsEnabled,
+        tags: _tags,
+        tagsCollapsed: _tagsCollapsed,
+    }: Note & Notetype & FieldsOpts & EditorOpts & EditorState): Promise<void> {
+        await tick();
+        // sessionManager.saveState();
+        saveSessionState();
+        maybeResetSessionState({
+            newNotetypeId: mid,
+            observedFieldsData: {
+                collapsedByDefault,
+                plainTextsByDefault,
+                fieldNames,
+            },
+        });
+
+        // Notetype
+        notetypeId = mid;
+
+        // Note
+        noteId = nid;
+
+        for (let i = fieldStores.length; i < fieldNames.length; i++) {
             const newStore = writable("");
             fieldStores[i] = newStore;
             newStore.subscribe((value) => updateField(i, value));
@@ -116,72 +242,54 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
         for (
             let i = fieldStores.length;
-            i > newFieldNames.length;
+            i > fieldNames.length;
             i = fieldStores.length
         ) {
             fieldStores.pop();
         }
 
-        for (const [index, [, fieldContent]] of fs.entries()) {
-            fieldStores[index].set(fieldContent);
-        }
+        contents.forEach((content, idx) => fieldStores[idx].set(content));
 
-        fieldNames = newFieldNames;
-    }
+        const state = stateByNotetype[notetypeId]?.fieldsState;
 
-    let fieldsCollapsed: boolean[] = [];
-    export function setCollapsed(defaultCollapsed: boolean[]): void {
-        fieldsCollapsed =
-            sessionOptions[notetypeId!]?.fieldsCollapsed ?? defaultCollapsed;
-    }
+        const fieldsCollapsed = state?.fieldsCollapsed ?? collapsedByDefault;
+        const plainTextsHidden =
+            state?.plainTextsHidden ?? plainTextsByDefault.map((v) => !v);
+        const richTextsHidden = state?.richTextsHidden ?? plainTextsByDefault;
 
-    let richTextsHidden: boolean[] = [];
-    let plainTextsHidden: boolean[] = [];
-    let plainTextDefaults: boolean[] = [];
+        // const state = sessionManager.getState({
+        //     newNotetypeId: mid,
+        //     observedFieldsData: { collapsedByDefault, plainTextsByDefault, fieldNames },
+        // });
+        // tick().then(() => {
+        fieldsData = fieldNames.map((name, idx) => ({
+            name,
+            plainTextByDefault: plainTextsByDefault[idx],
+            description: descriptions[idx],
+            fontFamily: quoteFontFamily(fontFamilies[idx]),
+            fontSize: fontSizes[idx],
+            direction: directions[idx],
+            collapsedByDefault: collapsedByDefault[idx],
+            state: {
+                // fieldCollapsed: state.fieldsCollapsed[idx],
+                // plainTextHidden: state.plainTextsHidden[idx],
+                // richTextHidden: state.richTextsHidden[idx],
+                fieldCollapsed: fieldsCollapsed[idx],
+                plainTextHidden: plainTextsHidden[idx],
+                richTextHidden: richTextsHidden[idx],
+            },
+        }));
+        focusField(fieldToFocus);
+        // });
+        // Editor options
+        $closeHTMLTags = _closeHTMLTags;
+        mathjaxConfig.enabled = mathjaxEnabled;
+        $shrinkImagesByDefault = shrinkImages;
+        insertSymbols = symbolsEnabled;
 
-    export function setPlainTexts(defaultPlainTexts: boolean[]): void {
-        const states = sessionOptions[notetypeId!]?.fieldStates;
-        if (states) {
-            richTextsHidden = states.richTextsHidden;
-            plainTextsHidden = states.plainTextsHidden;
-            plainTextDefaults = states.plainTextDefaults;
-        } else {
-            plainTextDefaults = defaultPlainTexts;
-            richTextsHidden = [...defaultPlainTexts];
-            plainTextsHidden = Array.from(defaultPlainTexts, (v) => !v);
-        }
-    }
-
-    export function triggerChanges(): void {
-        // I know this looks quite weird and doesn't seem to do anything
-        // but if we don't call this after setPlainTexts() and setCollapsed()
-        // when switching notetypes, existing collapsibles won't react
-        // automatically to the updated props
-        tick().then(() => {
-            fieldsCollapsed = fieldsCollapsed;
-            plainTextDefaults = plainTextDefaults;
-            richTextsHidden = richTextsHidden;
-            plainTextsHidden = plainTextsHidden;
-        });
-    }
-
-    function setMathjaxEnabled(enabled: boolean): void {
-        mathjaxConfig.enabled = enabled;
-    }
-
-    let fieldDescriptions: string[] = [];
-    export function setDescriptions(descriptions: string[]): void {
-        fieldDescriptions = descriptions.map((d) =>
-            d.replace(/\\/g, "").replace(/"/g, '\\"'),
-        );
-    }
-
-    let fonts: [string, number, boolean][] = [];
-
-    const fields = clearableArray<EditorFieldAPI>();
-
-    export function setFonts(fs: [string, number, boolean][]): void {
-        fonts = fs;
+        // Tags
+        $tags = _tags;
+        $tagsCollapsed = _tagsCollapsed;
     }
 
     export function focusField(index: number | null): void {
@@ -198,40 +306,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         });
     }
 
-    const tags = writable<string[]>([]);
-    export function setTags(ts: string[]): void {
-        $tags = ts;
-    }
-
-    const tagsCollapsed = writable<boolean>();
-    export function setTagsCollapsed(collapsed: boolean): void {
-        $tagsCollapsed = collapsed;
-    }
-
     function updateTagsCollapsed(collapsed: boolean) {
         $tagsCollapsed = collapsed;
         bridgeCommand(`setTagsCollapsed:${$tagsCollapsed}`);
-    }
-
-    let noteId: number | null = null;
-    export function setNoteId(ntid: number): void {
-        // TODO this is a hack, because it requires the NoteEditor to know implementation details of the PlainTextInput.
-        // It should be refactored once we work on our own Undo stack
-        for (const pi of plainTextInputs) {
-            pi.api.codeMirror.editor.then((editor) => editor.clearHistory());
-        }
-        noteId = ntid;
-    }
-
-    let notetypeId: number | null = null;
-    export function setNotetypeId(mid: number): void {
-        notetypeId = mid;
-    }
-
-    let insertSymbols = false;
-
-    function setInsertSymbolsEnabled() {
-        insertSymbols = true;
     }
 
     function getNoteId(): number | null {
@@ -248,22 +325,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         hint = hnt;
     }
 
-    $: fieldsData = fieldNames.map((name, index) => ({
-        name,
-        plainText: plainTextDefaults[index],
-        description: fieldDescriptions[index],
-        fontFamily: quoteFontFamily(fonts[index][0]),
-        fontSize: fonts[index][1],
-        direction: fonts[index][2] ? "rtl" : "ltr",
-        collapsed: fieldsCollapsed[index],
-    })) as FieldData[];
-
     function saveTags({ detail }: CustomEvent): void {
         tagAmount = detail.tags.filter((tag: string) => tag != "").length;
         bridgeCommand(`saveTags:${JSON.stringify(detail.tags)}`);
     }
-
-    const fieldSave = new ChangeTimer();
 
     function transformContentBeforeSave(content: string): string {
         return content.replace(/ data-editor-shrink="(true|false)"/g, "");
@@ -274,10 +339,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             () =>
                 bridgeCommand(
                     `key:${index}:${getNoteId()}:${transformContentBeforeSave(
-                        content,
-                    )}`,
+                        content
+                    )}`
                 ),
-            600,
+            600
         );
     }
 
@@ -303,7 +368,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         const first = elements[0];
 
         if (first.shadowRoot) {
-            const richTextInput = first.shadowRoot.lastElementChild! as HTMLElement;
+            const richTextInput = first.shadowRoot
+                .lastElementChild! as HTMLElement;
             richTextInput.focus();
             return true;
         }
@@ -317,57 +383,42 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     let plainTextInputs: PlainTextInput[] = [];
     $: plainTextInputs = plainTextInputs.filter(Boolean);
 
-    function toggleRichTextInput(index: number): void {
-        const hidden = !richTextsHidden[index];
-        richTextInputs[index].focusFlag.setFlag(!hidden);
-        richTextsHidden[index] = hidden;
+    function toggleRichTextInput(idx: number): void {
+        const hidden = !fieldsData[idx].state.richTextHidden;
+        richTextInputs[idx].focusFlag.setFlag(!hidden);
+        fieldsData[idx].state.richTextHidden = hidden;
         if (hidden) {
-            plainTextInputs[index].api.refocus();
+            plainTextInputs[idx].api.refocus();
         }
     }
 
-    function togglePlainTextInput(index: number): void {
-        const hidden = !plainTextsHidden[index];
-        plainTextInputs[index].focusFlag.setFlag(!hidden);
-        plainTextsHidden[index] = hidden;
+    function togglePlainTextInput(idx: number): void {
+        const hidden = !fieldsData[idx].state.plainTextHidden;
+        plainTextInputs[idx].focusFlag.setFlag(!hidden);
+        fieldsData[idx].state.plainTextHidden = hidden;
         if (hidden) {
-            richTextInputs[index].api.refocus();
+            richTextInputs[idx].api.refocus();
         }
     }
 
-    function toggleField(index: number): void {
-        const collapsed = !fieldsCollapsed[index];
-        fieldsCollapsed[index] = collapsed;
+    function toggleField(idx: number): void {
+        const collapsed = !fieldsData[idx].state.fieldCollapsed;
+        fieldsData[idx].state.fieldCollapsed = collapsed;
 
-        const defaultInput = !plainTextDefaults[index]
-            ? richTextInputs[index]
-            : plainTextInputs[index];
+        const defaultInput = !fieldsData[idx].plainTextByDefault
+            ? richTextInputs[idx]
+            : plainTextInputs[idx];
 
         if (!collapsed) {
             defaultInput.api.refocus();
-        } else if (!plainTextDefaults[index]) {
-            plainTextsHidden[index] = true;
+        } else if (!fieldsData[idx].plainTextByDefault) {
+            fieldsData[idx].state.plainTextHidden = true;
         } else {
-            richTextsHidden[index] = true;
+            fieldsData[idx].state.richTextHidden = true;
         }
     }
 
     const toolbar: Partial<EditorToolbarAPI> = {};
-
-    function setShrinkImages(shrinkByDefault: boolean) {
-        $shrinkImagesByDefault = shrinkByDefault;
-    }
-
-    function setCloseHTMLTags(closeTags: boolean) {
-        $closeHTMLTags = closeTags;
-    }
-
-    import { wrapInternal } from "@tslib/wrap";
-    import Shortcut from "components/Shortcut.svelte";
-
-    import { mathjaxConfig } from "../editable/mathjax-element";
-    import CollapseLabel from "./CollapseLabel.svelte";
-    import * as oldEditorAdapter from "./old-editor-adapter";
 
     onMount(() => {
         function wrap(before: string, after: string): void {
@@ -381,33 +432,20 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         Object.assign(globalThis, {
-            saveSession,
-            setFields,
-            setCollapsed,
-            setPlainTexts,
-            setDescriptions,
-            setFonts,
+            loadData,
             focusField,
-            setTags,
-            setTagsCollapsed,
             setBackgrounds,
             setClozeHint,
             saveNow,
             focusIfField,
             getNoteId,
-            setNoteId,
-            setNotetypeId,
             wrap,
-            setMathjaxEnabled,
-            setInsertSymbolsEnabled,
-            setShrinkImages,
-            setCloseHTMLTags,
-            triggerChanges,
             ...oldEditorAdapter,
         });
 
         document.addEventListener("visibilitychange", saveOnPageHide);
-        return () => document.removeEventListener("visibilitychange", saveOnPageHide);
+        return () =>
+            document.removeEventListener("visibilitychange", saveOnPageHide);
     });
 
     let apiPartial: Partial<NoteEditorAPI> = {};
@@ -463,7 +501,7 @@ the AddCards dialog) should be implemented in the user of this component.
             <EditorField
                 {field}
                 {content}
-                flipInputs={plainTextDefaults[index]}
+                flipInputs={field.plainTextByDefault}
                 api={fields[index]}
                 on:focusin={() => {
                     $focusedField = fields[index];
@@ -473,8 +511,8 @@ the AddCards dialog) should be implemented in the user of this component.
                     $focusedField = null;
                     bridgeCommand(
                         `blur:${index}:${getNoteId()}:${transformContentBeforeSave(
-                            get(content),
-                        )}`,
+                            get(content)
+                        )}`
                     );
                 }}
                 on:mouseenter={() => {
@@ -483,14 +521,14 @@ the AddCards dialog) should be implemented in the user of this component.
                 on:mouseleave={() => {
                     $hoveredField = null;
                 }}
-                collapsed={fieldsCollapsed[index]}
+                collapsed={field.state.fieldCollapsed}
                 dupe={cols[index] === "dupe"}
                 --description-font-size="{field.fontSize}px"
                 --description-content={`"${field.description}"`}
             >
                 <svelte:fragment slot="field-label">
                     <LabelContainer
-                        collapsed={fieldsCollapsed[index]}
+                        collapsed={field.state.fieldCollapsed}
                         on:toggle={() => toggleField(index)}
                         --icon-align="bottom"
                     >
@@ -503,21 +541,22 @@ the AddCards dialog) should be implemented in the user of this component.
                             {#if cols[index] === "dupe"}
                                 <DuplicateLink />
                             {/if}
-                            {#if plainTextDefaults[index]}
+                            {#if field.plainTextByDefault}
                                 <RichTextBadge
-                                    show={!fieldsCollapsed[index] &&
+                                    show={!field.state.fieldCollapsed &&
                                         (fields[index] === $hoveredField ||
                                             fields[index] === $focusedField)}
-                                    bind:off={richTextsHidden[index]}
+                                    bind:off={field.state.richTextHidden}
                                     on:toggle={() => toggleRichTextInput(index)}
                                 />
                             {:else}
                                 <PlainTextBadge
-                                    show={!fieldsCollapsed[index] &&
+                                    show={!field.state.fieldCollapsed &&
                                         (fields[index] === $hoveredField ||
                                             fields[index] === $focusedField)}
-                                    bind:off={plainTextsHidden[index]}
-                                    on:toggle={() => togglePlainTextInput(index)}
+                                    bind:off={field.state.plainTextHidden}
+                                    on:toggle={() =>
+                                        togglePlainTextInput(index)}
                                 />
                             {/if}
                             <slot
@@ -532,7 +571,7 @@ the AddCards dialog) should be implemented in the user of this component.
                 </svelte:fragment>
                 <svelte:fragment slot="rich-text-input">
                     <Collapsible
-                        collapse={richTextsHidden[index]}
+                        collapse={field.state.richTextHidden}
                         let:collapsed={hidden}
                         toggleDisplay
                     >
@@ -548,7 +587,7 @@ the AddCards dialog) should be implemented in the user of this component.
                 </svelte:fragment>
                 <svelte:fragment slot="plain-text-input">
                     <Collapsible
-                        collapse={plainTextsHidden[index]}
+                        collapse={field.state.plainTextHidden}
                         let:collapsed={hidden}
                         toggleDisplay
                     >

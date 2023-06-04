@@ -6,16 +6,17 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import type { Readable } from "svelte/store";
 
     import type { EditingAreaAPI } from "./EditingArea.svelte";
+    import type { FieldData } from "./types";
 
-    export interface FieldData {
-        name: string;
-        fontFamily: string;
-        fontSize: number;
-        direction: "ltr" | "rtl";
-        plainText: boolean;
-        description: string;
-        collapsed: boolean;
-    }
+    // export interface FieldData {
+    //     name: string;
+    //     fontFamily: string;
+    //     fontSize: number;
+    //     direction: "ltr" | "rtl";
+    //     plainText: boolean;
+    //     description: string;
+    //     collapsed: boolean;
+    // }
 
     export interface EditorFieldAPI {
         element: Promise<HTMLElement>;

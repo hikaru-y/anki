@@ -1,6 +1,14 @@
 // Copyright: Ankitects Pty Ltd and contributors
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+export function quoteFontFamily(fontFamily: string): string {
+    // generic families (e.g. sans-serif) must not be quoted
+    if (!/^[-a-z]+$/.test(fontFamily)) {
+        fontFamily = `"${fontFamily}"`;
+    }
+    return fontFamily;
+}
+
 function isFontElement(element: Element): element is HTMLFontElement {
     return element.tagName === "FONT";
 }

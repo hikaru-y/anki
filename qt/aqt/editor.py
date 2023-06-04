@@ -528,7 +528,31 @@ require("anki/ui").loaded.then(() => require("anki/NoteEditor").instances[0].too
         text_color = self.mw.pm.profile.get("lastTextColor", "#0000ff")
         highlight_color = self.mw.pm.profile.get("lastHighlightColor", "#0000ff")
 
-        js = f"""
+        flds = self.note.note_type()["flds"]
+        print(f"{self.note.keys()=}")
+        note_data = {
+            "closeHTMLTags": self.mw.col.get_config("closeHTMLTags", True),
+            "collapsedByDefault": [f["collapsed"] for f in flds],
+            "contents": self.note.values(),
+            "descriptions": [f.get("description", "") for f in flds],
+            "directions": ["rtl" if f["rtl"] else "ltr" for f in flds],
+            "fieldNames": self.note.keys(),
+            "fieldToFocus": focusTo,
+            "fontFamilies": [
+                gui_hooks.editor_will_use_font_for_field(f["font"]) for f in flds
+            ],
+            "fontSizes": [f["size"] for f in flds],
+            "mathjaxEnabled": self.mw.col.get_config("renderMathjax", True),
+            "mid": self.note.mid,
+            "nid": self.note.id,
+            "plainTextsByDefault": [f.get("plainText", False) for f in flds],
+            "shrinkImages": self.mw.col.get_config("shrinkEditorImages", True),
+            "symbolsEnabled": bool(os.getenv("ANKI_EDITOR_INSERT_SYMBOLS")),
+            "tags": self.note.tags,
+            "tagsCollapsed": self.mw.pm.tags_collapsed(self.editorMode),
+        }
+
+        js_ = f"""
             saveSession();
             setFields({json.dumps(data)});
             setNotetypeId({json.dumps(self.note.mid)});
@@ -546,6 +570,7 @@ require("anki/ui").loaded.then(() => require("anki/NoteEditor").instances[0].too
             setCloseHTMLTags({json.dumps(self.mw.col.get_config("closeHTMLTags", True))});
             triggerChanges();
             """
+        js = f"loadData({json.dumps(note_data)});"
 
         if self.addMode:
             sticky = [field["sticky"] for field in self.note.note_type()["flds"]]
