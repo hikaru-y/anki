@@ -1219,14 +1219,18 @@ class EditorWebView(AnkiWebView):
         self.editor = editor
         self.setAcceptDrops(True)
         self._markInternal = False
-        clip = self.editor.mw.app.clipboard()
-        qconnect(clip.dataChanged, self._onClipboardChange)
+        # clip = self.editor.mw.app.clipboard()
+        # qconnect(clip.dataChanged, self._onClipboardChange)
+        self.clip = self.editor.mw.app.clipboard()
+        qconnect(self.clip.dataChanged, self._onClipboardChange)
+        self.copied_HTML_from_internal = ""
         gui_hooks.editor_web_view_did_init(self)
 
     def _onClipboardChange(self) -> None:
         if self._markInternal:
             self._markInternal = False
-            self._flagAnkiText()
+            # self._flagAnkiText()
+            self.copied_HTML_from_internal = self.clip.mimeData().html()
 
     def onCut(self) -> None:
         self.triggerPageAction(QWebEnginePage.WebAction.Cut)
@@ -1285,7 +1289,9 @@ class EditorWebView(AnkiWebView):
         # print("urls", mime.urls())
         # print("text", mime.text())
 
-        internal = mime.html().startswith("<!--anki-->")
+        # internal = mime.html().startswith("<!--anki-->")
+        internal = mime.html() == self.copied_HTML_from_internal
+        print(f"{internal=}")
 
         mime = gui_hooks.editor_will_process_mime(
             mime, self, internal, extended, drop_event
@@ -1387,8 +1393,8 @@ class EditorWebView(AnkiWebView):
         self._markInternal = True
         # workaround broken QClipboard.dataChanged() on recent Qt6 versions
         # https://github.com/ankitects/anki/issues/1793
-        if is_win and qtmajor == 6:
-            self.editor.mw.progress.single_shot(300, self._flagAnkiText, True)
+        # if is_win and qtmajor == 6:
+        #     self.editor.mw.progress.single_shot(300, self._flagAnkiText, True)
 
     def _flagAnkiText(self) -> None:
         # add a comment in the clipboard html so we can tell text is copied
