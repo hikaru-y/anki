@@ -31,8 +31,18 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const { focusedInput } = context.get();
 
     let cleanup: Callback;
+    let removeDataAttrFromEditable: (() => void) | undefined;
     let richTextInput: RichTextInputAPI | null = null;
-    let allowPromise = Promise.resolve();
+    // let allowPromise = Promise.resolve();
+    let resetPromise: ReturnType<typeof promiseWithResolver<void>>[0] | undefined;
+    let resolveReset: ReturnType<typeof promiseWithResolver<void>>[1] | undefined;
+
+    function addDataAttrToEditable(img: HTMLImageElement): () => void {
+        const dataAttr = "data-overlay-active";
+        const editable = img.closest("anki-editable")!;
+        editable.setAttribute(dataAttr, "true");
+        return () => editable.removeAttribute(dataAttr);
+    }
 
     async function initialize(input: EditingInputAPI | null): Promise<void> {
         cleanup?.();
@@ -52,14 +62,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         // Wait if the mathjax overlay is still active
-        await allowPromise;
+        // await allowPromise;
+        await resetPromise;
 
-        if (!isRichText) {
-            richTextInput = null;
-            return;
-        }
+        // if (!isRichText) {
+        //     richTextInput = null;
+        //     return;
+        // }
 
-        richTextInput = input;
+        // richTextInput = input;
     }
 
     $: initialize($focusedInput);
@@ -67,7 +78,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     let activeImage: HTMLImageElement | null = null;
     let mathjaxElement: HTMLElement | null = null;
 
-    let allowResubscription: Callback;
+    // let allowResubscription: Callback;
     let unsubscribe: Callback;
 
     let selectAll = false;
@@ -79,21 +90,24 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
      */
     const code = writable("");
 
-    function showOverlay(image: HTMLImageElement, pos?: CodeMirrorLib.Position) {
+    function showOverlay(image: HTMLImageElement, pos?: number) {
         if ($isComposing) {
             // Should be canceled while an IME composition session is active
             return;
         }
 
-        const [promise, allowResolve] = promiseWithResolver<void>();
+        // const [promise, allowResolve] = promiseWithResolver<void>();
 
-        allowPromise = promise;
-        allowResubscription = singleCallback(
-            richTextInput!.preventResubscription(),
-            allowResolve,
-        );
+        // allowPromise = promise;
+        // allowResubscription = singleCallback(
+        //     richTextInput!.preventResubscription(),
+        //     allowResolve,
+        // );
+        [resetPromise, resolveReset] = promiseWithResolver<void>();
 
         position = pos;
+
+        removeDataAttrFromEditable = addDataAttrToEditable(image);
 
         /* Setting the activeImage and mathjaxElement to a non-nullish value is
          * what triggers the Mathjax editor to show */
@@ -107,7 +121,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     function placeHandle(after: boolean): void {
-        richTextInput!.editable.focusHandler.flushCaret();
+        // richTextInput!.editable.focusHandler.flushCaret();
 
         if (after) {
             (mathjaxElement as any).placeCaretAfter();
@@ -120,17 +134,20 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         selectAll = false;
         position = undefined;
 
-        allowResubscription?.();
+        // allowResubscription?.();
 
         if (activeImage && mathjaxElement) {
             clear();
         }
+        console.log(resolveReset);
+        resolveReset?.();
     }
 
     function clear(): void {
         unsubscribe();
         activeImage = null;
         mathjaxElement = null;
+        removeDataAttrFromEditable?.();
     }
 
     let errorMessage: string;
@@ -156,6 +173,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     async function showOverlayIfMathjaxClicked({ target }: Event): Promise<void> {
         if (target instanceof HTMLImageElement && target.dataset.anki === "mathjax") {
             resetHandle();
+            await tick();
             showOverlay(target);
         }
     }
@@ -164,13 +182,13 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         detail,
     }: CustomEvent<{
         image: HTMLImageElement;
-        position?: [number, number];
+        position?: number;
     }>): Promise<void> {
-        let position: CodeMirrorLib.Position | undefined = undefined;
+        console.log(detail.image, detail.position);
+        let position: number | undefined = undefined;
 
         if (detail.position) {
-            const [line, ch] = detail.position;
-            position = { line, ch };
+            position = detail.position;
         }
 
         showOverlay(detail.image, position);
@@ -179,6 +197,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     async function showSelectAll({
         detail,
     }: CustomEvent<HTMLImageElement>): Promise<void> {
+        console.log("showall");
         selectAll = true;
         showOverlay(detail);
     }

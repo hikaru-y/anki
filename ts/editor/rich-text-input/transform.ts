@@ -1,6 +1,8 @@
 // Copyright: Ankitects Pty Ltd and contributors
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+import type { Writable } from "svelte/store";
+import { replaceFrameElementsWithTextNodes } from "../../editable/frame-element";
 import { fragmentToString, nodeContainsInlineContent, nodeIsElement } from "../../lib/dom";
 import { createDummyDoc } from "../../lib/parsing";
 import { decoratedElements } from "../decorated-elements";
@@ -54,4 +56,13 @@ export function fragmentToStored(fragment: DocumentFragment): string {
 
     const storedHTML = adjustOutputHTML(fragmentToString(clone));
     return storedHTML;
+}
+
+const template = document.createElement("template");
+
+export function convertEditableToStoredHtml(editable: HTMLElement): string {
+    template.innerHTML = editable.innerHTML;
+    adjustOutputFragment(template.content);
+    replaceFrameElementsWithTextNodes(template.content);
+    return template.innerHTML;
 }

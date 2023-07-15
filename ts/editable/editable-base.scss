@@ -44,3 +44,7 @@ img:not(.mathjax) {
         max-height: var(--editor-shrink-max-height);
     }
 }
+
+anki-editable {
+    min-height: 1em;
+}

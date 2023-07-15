@@ -52,8 +52,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import Collapsible from "../components/Collapsible.svelte";
     import type { Destroyable } from "./destroyable";
     import EditingArea from "./EditingArea.svelte";
+    import type { FieldStore } from "./types";
 
-    export let content: Writable<string>;
+    export let fieldStore: Writable<FieldStore>;
     export let field: FieldData;
     export let collapsed = false;
     export let flipInputs = false;
@@ -100,7 +101,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             {hidden}
         >
             <EditingArea
-                {content}
+                {fieldStore}
                 fontFamily={field.fontFamily}
                 fontSize={field.fontSize}
                 api={editingArea}

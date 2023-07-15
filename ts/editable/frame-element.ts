@@ -261,3 +261,20 @@ export function frameElement(element: HTMLElement, block: boolean): FrameElement
 
     return frame;
 }
+
+/**
+ * This converts frame elements to text nodes as a preliminary step to retrieve
+ * HTML from the documentFragment in the format to be stored in the DB.
+ */
+export function replaceFrameElementsWithTextNodes(fragment: DocumentFragment) {
+    fragment.querySelectorAll("anki-frame").forEach((ele) => {
+        const mathjax = ele.querySelector<HTMLElement>("anki-mathjax");
+
+        if (mathjax) {
+            const [prefix, suffix] = mathjax.getAttribute("block") === "true" ? ["\\[", "\\]"] : ["\\(", "\\)"];
+            const data = mathjax.dataset.mathjax;
+            const text = document.createTextNode(`${prefix}${data}${suffix}`);
+            ele.replaceWith(text);
+        }
+    });
+}

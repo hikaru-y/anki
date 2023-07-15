@@ -4,6 +4,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
 <script context="module" lang="ts">
     import { writable } from "svelte/store";
+    import type { Writable } from "svelte/store";
 
     import type { ContentEditableAPI } from "../../editable/ContentEditable.svelte";
     import type { InputHandlerAPI } from "../../sveltelib/input-handler";
@@ -22,6 +23,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         /** The API exposed by the editable component */
         editable: ContentEditableAPI;
         customStyles: Promise<CustomStyles>;
+        mathjaxOverlayActiveStore: Writable<boolean>;
     }
 
     function editingInputIsRichText(
@@ -84,7 +86,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export const focusFlag = new Flag();
 
     const { focusedInput } = noteEditorContext.get();
-    const { content, editingInputs } = editingAreaContext.get();
+    const { editingInputs, fieldStore } = editingAreaContext.get();
 
     const fontFamily = getContext<Readable<string>>(fontFamilyKey);
     const fontSize = getContext<Readable<number>>(fontSizeKey);
@@ -95,6 +97,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const { mirror, preventResubscription } = useDOMMirror();
     const [inputHandler, setupInputHandler] = useInputHandler();
     const [customStyles, stylesResolve] = promiseWithResolver<CustomStyles>();
+
+    const mathjaxOverlayActiveStore = writable(false);
 
     export function attachShadow(element: Element): void {
         element.attachShadow({ mode: "open" });
@@ -153,6 +157,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         inputHandler,
         editable: {} as ContentEditableAPI,
         customStyles,
+        mathjaxOverlayActiveStore,
     };
 
     const allContexts = getAllContexts();
@@ -183,6 +188,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     function setFocus(): void {
         $focusedInput = api;
         $apiStore = api;
+        focused = true;
     }
 
     function removeFocus(): void {
@@ -192,6 +198,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         // field right away.
 
         $apiStore = null;
+        focused = false;
     }
 
     $: {
@@ -205,18 +212,20 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         $editingInputs.push(api);
         $editingInputs = $editingInputs;
 
-        return singleCallback(
-            content.subscribe((html: string): void =>
-                nodes.setUnprocessed(storedToFragment(html)),
-            ),
-            nodes.subscribe((fragment: DocumentFragment): void =>
-                content.set(fragmentToStored(fragment)),
-            ),
-        );
+        // return singleCallback(
+        //     content.subscribe((html: string): void =>
+        //         nodes.setUnprocessed(storedToFragment(html)),
+        //     ),
+        //     nodes.subscribe((fragment: DocumentFragment): void =>
+        //         content.set(fragmentToStored(fragment)),
+        //     ),
+        // );
     });
 
     setContextProperty(api);
     setupLifecycleHooks(api);
+
+    let focused = false;
 </script>
 
 <div class="rich-text-input" on:focusin={setFocus} on:focusout={removeFocus} {hidden}>
@@ -232,7 +241,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         <div class="rich-text-relative">
             <div
                 class="rich-text-editable"
-                class:empty={$content.length === 0}
+                class:empty={$fieldStore.content.length === 0}
                 bind:this={richTextDiv}
                 use:attachShadow
                 use:attachStyles

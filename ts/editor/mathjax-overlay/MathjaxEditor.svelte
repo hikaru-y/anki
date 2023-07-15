@@ -14,106 +14,184 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <script lang="ts">
+    import { promiseWithResolver } from "@tslib/promise";
+    import type { KeyBinding, EditorView } from "@codemirror/view";
+    import { standardKeymap } from "@codemirror/commands";
+    import { stex } from "@codemirror/legacy-modes/mode/stex";
+    import { StreamLanguage } from "@codemirror/language";
     import * as tr from "@tslib/ftl";
     import { noop } from "@tslib/functional";
     import { isArrowLeft, isArrowRight } from "@tslib/keys";
     import { getPlatformString } from "@tslib/shortcuts";
-    import type CodeMirrorLib from "codemirror";
-    import { createEventDispatcher, onMount } from "svelte";
+    // import type CodeMirrorLib from "codemirror";
+    import { createEventDispatcher, onMount, tick } from "svelte";
     import type { Writable } from "svelte/store";
 
     import { pageTheme } from "../../sveltelib/theme";
-    import { baseOptions, focusAndSetCaret, latex } from "../code-mirror";
+    // import { baseOptions, focusAndSetCaret, latex } from "../code-mirror";
     import type { CodeMirrorAPI } from "../CodeMirror.svelte";
-    import CodeMirror from "../CodeMirror.svelte";
+    import CodeMirror6 from "../CodeMirror6.svelte";
 
     export let code: Writable<string>;
     export let acceptShortcut: string;
     export let newlineShortcut: string;
 
-    const configuration = {
-        ...Object.assign({}, baseOptions, {
-            extraKeys: {
-                ...(baseOptions.extraKeys as CodeMirrorLib.KeyMap),
-                [acceptShortcut]: noop,
-                [newlineShortcut]: noop,
-            },
-        }),
-        placeholder: tr.editingMathjaxPlaceholder({
-            accept: getPlatformString(acceptShortcut),
-            newline: getPlatformString(newlineShortcut),
-        }),
-        mode: latex,
-    };
+    // const configuration = {
+    //     ...Object.assign({}, baseOptions, {
+    //         extraKeys: {
+    //             ...(baseOptions.extraKeys as CodeMirrorLib.KeyMap),
+    //             [acceptShortcut]: noop,
+    //             [newlineShortcut]: noop,
+    //         },
+    //     }),
+    //     placeholder: tr.editingMathjaxPlaceholder({
+    //         accept: getPlatformString(acceptShortcut),
+    //         newline: getPlatformString(newlineShortcut),
+    //     }),
+    //     mode: latex,
+    // };
 
     /* These are not reactive, but only operate on initialization */
-    export let position: CodeMirrorLib.Position | undefined = undefined;
-    export let selectAll: boolean;
+    export let position: number | undefined = undefined;
+    export let selectAll = false;
 
-    const dispatch = createEventDispatcher();
+    const dispatch = createEventDispatcher<{
+        close: void;
+        moveoutstart: void;
+        moveoutend: void;
+    }>();
 
-    let codeMirror = {} as CodeMirrorAPI;
+    let codeMirror: CodeMirror6;
 
     onMount(async () => {
-        const editor = await codeMirror.editor;
+        // const editor = await codeMirror.editor;
 
         let direction: "start" | "end" | undefined = undefined;
 
-        editor.on(
-            "keydown",
-            (_instance: CodeMirrorLib.Editor, event: KeyboardEvent): void => {
-                if (event.key === "Escape") {
-                    dispatch("close");
-                    event.stopPropagation();
-                } else if (isArrowLeft(event)) {
-                    direction = "start";
-                } else if (isArrowRight(event)) {
-                    direction = "end";
-                }
-            },
-        );
+        // editor.on(
+        //     "keydown",
+        //     (_instance: CodeMirrorLib.Editor, event: KeyboardEvent): void => {
+        //         if (event.key === "Escape") {
+        //             dispatch("close");
+        //             event.stopPropagation();
+        //         } else if (isArrowLeft(event)) {
+        //             direction = "start";
+        //         } else if (isArrowRight(event)) {
+        //             direction = "end";
+        //         }
+        //     },
+        // );
 
-        editor.on(
-            "beforeSelectionChange",
-            (
-                instance: CodeMirrorLib.Editor,
-                obj: CodeMirrorLib.EditorSelectionChange,
-            ): void => {
-                const { anchor } = obj.ranges[0];
+        // editor.on(
+        //     "beforeSelectionChange",
+        //     (
+        //         instance: CodeMirrorLib.Editor,
+        //         obj: CodeMirrorLib.EditorSelectionChange,
+        //     ): void => {
+        //         const { anchor } = obj.ranges[0];
 
-                if (anchor["hitSide"]) {
-                    if (instance.getValue().length === 0) {
-                        if (direction) {
-                            dispatch(`moveout${direction}`);
-                        }
-                    } else if (anchor.line === 0 && anchor.ch === 0) {
-                        dispatch("moveoutstart");
-                    } else {
-                        dispatch("moveoutend");
-                    }
-                }
+        //         if (anchor["hitSide"]) {
+        //             if (instance.getValue().length === 0) {
+        //                 if (direction) {
+        //                     dispatch(`moveout${direction}`);
+        //                 }
+        //             } else if (anchor.line === 0 && anchor.ch === 0) {
+        //                 dispatch("moveoutstart");
+        //             } else {
+        //                 dispatch("moveoutend");
+        //             }
+        //         }
 
-                direction = undefined;
-            },
-        );
+        //         direction = undefined;
+        //     },
+        // );
+        await viewPromise;
+
+        if (position) {
+            codeMirror.setCaretPosition(position);
+        } else if (selectAll) {
+            codeMirror.selectAll();
+        } else {
+            codeMirror.focus();
+        }
 
         setTimeout(() => {
-            focusAndSetCaret(editor, position);
-
-            if (selectAll) {
-                editor.execCommand("selectAll");
-            }
+            // console.log(35435354);
+            // // focusAndSetCaret(editor, position);
+            // codeMirror.focus();
+            // if (position) {
+            //     codeMirror.setCaretPosition(position);
+            // }
+            // if (selectAll) {
+            //     codeMirror.selectAll();
+            // }
         });
     });
 
     $: $closeSignalStore, dispatch("close");
+
+    const langExtension = StreamLanguage.define(stex);
+    const keyBindings: KeyBinding[] = [
+        // {
+        //     key: "Escape",
+        //     run: () => {
+        //         dispatch("close");
+        //         return true;
+        //     },
+        // },
+        {
+            key: "Enter",
+            run: () => {
+                dispatch("moveoutend");
+                return true;
+            },
+        },
+        {
+            key: "ArrowLeft",
+            run: (view) => {
+                if (
+                    view.state.selection.main.anchor === 0 &&
+                    view.state.selection.main.anchor === view.state.selection.main.head
+                ) {
+                    dispatch("moveoutstart");
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+        },
+        {
+            key: "ArrowRight",
+            run: (view) => {
+                if (
+                    view.state.selection.main.anchor === view.state.doc.length &&
+                    view.state.selection.main.anchor === view.state.selection.main.head
+                ) {
+                    dispatch("moveoutend");
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+        },
+        ...standardKeymap,
+    ];
+    const placeholderText = tr.editingMathjaxPlaceholder({
+        accept: getPlatformString(acceptShortcut),
+        newline: getPlatformString(newlineShortcut),
+    });
+    const [viewPromise, viewResolver] = promiseWithResolver<EditorView>();
 </script>
 
 <div class="mathjax-editor" class:light-theme={!$pageTheme.isDark}>
-    <CodeMirror
-        {code}
-        {configuration}
-        bind:api={codeMirror}
+    <CodeMirror6
+        hidden={false}
+        {langExtension}
+        {keyBindings}
+        initialValue={$code}
+        {placeholderText}
+        {viewResolver}
+        bind:this={codeMirror}
         on:change={({ detail: mathjaxText }) => code.set(mathjaxText)}
         on:blur
     />

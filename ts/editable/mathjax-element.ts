@@ -123,14 +123,9 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
         });
 
         if (this.hasAttribute("focusonmount")) {
-            let position: [number, number] | undefined = undefined;
-
-            if (this.getAttribute("focusonmount")!.length > 0) {
-                position = this.getAttribute("focusonmount")!
-                    .split(",")
-                    .map(Number) as [number, number];
-            }
-
+            const position = this.getAttribute("focusonmount")
+                ? Number(this.getAttribute("focusonmount"))
+                : undefined;
             this.component.moveCaretAfter(position);
         }
 

@@ -29,6 +29,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const key = Symbol("noteEditor");
     const [context, setContextProperty] = contextProperty<NoteEditorAPI>(key);
     const [lifecycle, instances, setupLifecycleHooks] = lifecycleHooks<NoteEditorAPI>();
+    // export let isNoteUpdating = false;
 
     export { context };
 
@@ -67,7 +68,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import PlainTextBadge from "./PlainTextBadge.svelte";
     import RichTextInput, { editingInputIsRichText } from "./rich-text-input";
     import RichTextBadge from "./RichTextBadge.svelte";
-    import type { NotetypeIdAndModTime, SessionOptions } from "./types";
+    import type { FieldStore, NotetypeIdAndModTime, SessionOptions } from "./types";
 
     function quoteFontFamily(fontFamily: string): string {
         // generic families (e.g. sans-serif) must not be quoted
@@ -95,7 +96,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
     }
 
-    const fieldStores: Writable<string>[] = [];
+    const fieldStores: Writable<FieldStore>[] = [];
+
     let fieldNames: string[] = [];
     export function setFields(fs: [string, string][]): void {
         // this is a bit of a mess -- when moving to Rust calls, we should make
@@ -110,9 +112,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         for (let i = fieldStores.length; i < newFieldNames.length; i++) {
-            const newStore = writable("");
+            const newStore = writable({ content: "" });
             fieldStores[i] = newStore;
-            newStore.subscribe((value) => updateField(i, value));
+            newStore.subscribe(({ content }) => updateField(i, content));
         }
 
         for (
@@ -123,9 +125,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             fieldStores.pop();
         }
 
-        for (const [index, [, fieldContent]] of fs.entries()) {
-            fieldStores[index].set(fieldContent);
+        // isNoteUpdating = true;
+        for (const [index, [, content]] of fs.entries()) {
+            fieldStores[index].set({ content, force: true });
         }
+        // isNoteUpdating = false;
 
         fieldNames = newFieldNames;
     }
@@ -218,9 +222,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export function setNoteId(ntid: number): void {
         // TODO this is a hack, because it requires the NoteEditor to know implementation details of the PlainTextInput.
         // It should be refactored once we work on our own Undo stack
-        for (const pi of plainTextInputs) {
-            pi.api.codeMirror.editor.then((editor) => editor.clearHistory());
-        }
+        // for (const pi of plainTextInputs) {
+        //     pi.api.codeMirror.editor.then((editor) => editor.clearHistory());
+        // }
         noteId = ntid;
     }
 
@@ -466,11 +470,11 @@ the AddCards dialog) should be implemented in the user of this component.
 
     <Fields>
         {#each fieldsData as field, index}
-            {@const content = fieldStores[index]}
+            {@const fieldStore = fieldStores[index]}
 
             <EditorField
                 {field}
-                {content}
+                {fieldStore}
                 flipInputs={plainTextDefaults[index]}
                 api={fields[index]}
                 on:focusin={() => {
@@ -483,7 +487,7 @@ the AddCards dialog) should be implemented in the user of this component.
                     setAddonButtonsDisabled(true);
                     bridgeCommand(
                         `blur:${index}:${getNoteId()}:${transformContentBeforeSave(
-                            get(content),
+                            get(fieldStore).content,
                         )}`,
                     );
                 }}

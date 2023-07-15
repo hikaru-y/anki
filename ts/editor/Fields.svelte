@@ -10,11 +10,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 @component
 Contains the fields. This contains the scrollable area.
 -->
-<ScrollArea>
-    <div class="fields">
-        <slot />
-    </div>
-</ScrollArea>
+<div class="fields">
+    <slot />
+</div>
 
 <style lang="scss">
     .fields {
