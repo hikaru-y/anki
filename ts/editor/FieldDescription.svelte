@@ -9,13 +9,13 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     import { context } from "./EditingArea.svelte";
 
-    const { content } = context.get();
+    const { fieldStore } = context.get();
 
     const fontFamily = getContext<Readable<string>>(fontFamilyKey);
     const fontSize = getContext<Readable<number>>(fontSizeKey);
     const direction = getContext<Readable<"ltr" | "rtl">>(directionKey);
 
-    $: empty = $content.length === 0;
+    $: empty = $fieldStore.content.length === 0;
 </script>
 
 {#if empty}
