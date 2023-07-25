@@ -29,8 +29,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         let highest = 0;
 
         for (const field of fields) {
-            const content = field.editingArea?.content;
-            const fieldHTML = content ? get(content) : "";
+            const fieldStore = field.editingArea.fieldStore;
+            const fieldHTML = get(fieldStore).content;
 
             const matches: number[] = [];
             let match: RegExpMatchArray | null = null;

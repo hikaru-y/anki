@@ -68,7 +68,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import PlainTextBadge from "./PlainTextBadge.svelte";
     import RichTextInput, { editingInputIsRichText } from "./rich-text-input";
     import RichTextBadge from "./RichTextBadge.svelte";
-    import type { NotetypeIdAndModTime, SessionOptions } from "./types";
+    import type { ContentInfo, NotetypeIdAndModTime, SessionOptions } from "./types";
     import { EditorState } from "./types";
 
     function quoteFontFamily(fontFamily: string): string {
@@ -97,7 +97,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
     }
 
-    const fieldStores: Writable<string>[] = [];
+    const fieldStores: Writable<ContentInfo>[] = [];
     let fieldNames: string[] = [];
     export function setFields(fs: [string, string][]): void {
         // this is a bit of a mess -- when moving to Rust calls, we should make
@@ -112,9 +112,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         for (let i = fieldStores.length; i < newFieldNames.length; i++) {
-            const newStore = writable("");
+            const newStore = writable<ContentInfo>({ content: "" });
             fieldStores[i] = newStore;
-            newStore.subscribe((value) => updateField(i, value));
+            newStore.subscribe(({ content }) => updateField(i, content));
         }
 
         for (
@@ -125,8 +125,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             fieldStores.pop();
         }
 
-        for (const [index, [, fieldContent]] of fs.entries()) {
-            fieldStores[index].set(fieldContent);
+        for (const [index, [, content]] of fs.entries()) {
+            fieldStores[index].set({ content, noteLoaded: true });
         }
 
         fieldNames = newFieldNames;
@@ -421,7 +421,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         await Promise.all([tick(), getIoFields]);
         imageOcclusionMode = options.mode;
         if (options.mode.kind === "add") {
-            fieldStores[ioFields.image].set(options.html);
+            fieldStores[ioFields.image].set({ content: options.html });
 
             // new image is being added
             if (isIOImageLoaded) {
@@ -434,7 +434,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                 );
             }
         } else {
-            const clozeNote = get(fieldStores[ioFields.occlusions]);
+            const clozeNote = get(fieldStores[ioFields.occlusions]).content;
             if (clozeNote.includes("oi=1")) {
                 $hideAllGuessOne = true;
             } else {
@@ -453,7 +453,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     function updateOcclusionsField(): void {
         if (isImageOcclusion) {
             const occlusionsData = exportShapesToClozeDeletions($hideAllGuessOne);
-            fieldStores[ioFields.occlusions].set(occlusionsData.clozes);
+            fieldStores[ioFields.occlusions].set({ content: occlusionsData.clozes });
         }
     }
 
@@ -644,11 +644,11 @@ the AddCards dialog) should be implemented in the user of this component.
     {#if !$ioMaskEditorVisible}
         <Fields>
             {#each fieldsData as field, index}
-                {@const content = fieldStores[index]}
+                {@const fieldStore = fieldStores[index]}
 
                 <EditorField
                     {field}
-                    {content}
+                    {fieldStore}
                     flipInputs={plainTextDefaults[index]}
                     api={fields[index]}
                     on:focusin={() => {
@@ -661,7 +661,7 @@ the AddCards dialog) should be implemented in the user of this component.
                         setAddonButtonsDisabled(true);
                         bridgeCommand(
                             `blur:${index}:${getNoteId()}:${transformContentBeforeSave(
-                                get(content),
+                                get(fieldStore).content,
                             )}`,
                         );
                     }}

@@ -79,7 +79,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export const focusFlag = new Flag();
 
     const { focusedInput } = noteEditorContext.get();
-    const { content, editingInputs } = editingAreaContext.get();
+    const { fieldStore, editingInputs } = editingAreaContext.get();
 
     const fontFamily = getContext<Readable<string>>(fontFamilyKey);
     const fontSize = getContext<Readable<number>>(fontSizeKey);
@@ -221,7 +221,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         <div class="rich-text-relative">
             <div
                 class="rich-text-editable"
-                class:empty={$content.length === 0}
+                class:empty={$fieldStore.content.length === 0}
                 bind:this={richTextDiv}
                 use:attachShadow
                 use:attachStyles

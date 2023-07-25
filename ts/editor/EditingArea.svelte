@@ -5,6 +5,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 <script context="module" lang="ts">
     import type { Writable } from "svelte/store";
 
+    import type { ContentInfo } from "../editor/types";
     import contextProperty from "../sveltelib/context-property";
 
     export interface FocusableInputAPI {
@@ -33,7 +34,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     export interface EditingAreaAPI {
-        content: Writable<string>;
+        fieldStore: Writable<ContentInfo>;
         editingInputs: Writable<EditingInputAPI[]>;
         focus(): void;
         refocus(): void;
@@ -60,7 +61,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     $: $fontSizeStore = fontSize;
     svelteSetContext(fontSizeKey, fontSizeStore);
 
-    export let content: Writable<string>;
+    export let fieldStore: Writable<ContentInfo>;
 
     let editingArea: HTMLElement;
 
@@ -87,7 +88,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export { apiPartial as api };
 
     const api = Object.assign(apiPartial, {
-        content,
+        fieldStore,
         editingInputs: inputsStore,
         focus,
         refocus,

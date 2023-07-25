@@ -54,8 +54,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     };
 
     const { focusedInput } = noteEditorContext.get();
-    const { editingInputs, content } = editingAreaContext.get();
-    const code = writable($content);
+    const { editingInputs, fieldStore } = editingAreaContext.get();
+    const code = writable($fieldStore.content);
 
     let codeMirror = {} as CodeMirrorAPI;
 
