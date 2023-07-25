@@ -23,7 +23,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import type { EditingInputAPI } from "../EditingArea.svelte";
     import HandleBackground from "../HandleBackground.svelte";
     import { context } from "../NoteEditor.svelte";
-    import type { RichTextInputAPI } from "../rich-text-input";
     import { editingInputIsRichText } from "../rich-text-input";
     import MathjaxButtons from "./MathjaxButtons.svelte";
     import MathjaxEditor from "./MathjaxEditor.svelte";
@@ -31,7 +30,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const { focusedInput } = context.get();
 
     let cleanup: Callback;
-    let richTextInput: RichTextInputAPI | null = null;
     let allowPromise = Promise.resolve();
 
     async function initialize(input: EditingInputAPI | null): Promise<void> {
@@ -53,13 +51,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
         // Wait if the mathjax overlay is still active
         await allowPromise;
-
-        if (!isRichText) {
-            richTextInput = null;
-            return;
-        }
-
-        richTextInput = input;
     }
 
     $: initialize($focusedInput);
@@ -88,10 +79,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         const [promise, allowResolve] = promiseWithResolver<void>();
 
         allowPromise = promise;
-        allowResubscription = singleCallback(
-            richTextInput!.preventResubscription(),
-            allowResolve,
-        );
+        allowResubscription = singleCallback(allowResolve);
 
         position = pos;
 
