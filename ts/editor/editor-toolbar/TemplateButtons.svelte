@@ -20,7 +20,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import Shortcut from "../../components/Shortcut.svelte";
     import { context } from "../NoteEditor.svelte";
     import { setFormat } from "../old-editor-adapter";
-    import type { RichTextInputAPI } from "../rich-text-input";
     import { editingInputIsRichText } from "../rich-text-input";
     import { micIcon, paperclipIcon } from "./icons";
     import LatexButton from "./LatexButton.svelte";
@@ -42,10 +41,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         [mediaPromise, resolve] = promiseWithResolver<string>();
-        ($focusedInput as RichTextInputAPI).editable.focusHandler.focus.on(
-            async () => setFormat("inserthtml", await mediaPromise),
-            { once: true },
-        );
+        mediaPromise.then((media) => setFormat("inserthtml", media));
 
         bridgeCommand("attach");
     }
@@ -62,10 +58,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         [mediaPromise, resolve] = promiseWithResolver<string>();
-        ($focusedInput as RichTextInputAPI).editable.focusHandler.focus.on(
-            async () => setFormat("inserthtml", await mediaPromise),
-            { once: true },
-        );
+        mediaPromise.then((media) => setFormat("inserthtml", media));
 
         bridgeCommand("record");
     }

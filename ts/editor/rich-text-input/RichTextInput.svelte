@@ -5,7 +5,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 <script context="module" lang="ts">
     import { writable } from "svelte/store";
 
-    import type { ContentEditableAPI } from "../../editable/ContentEditable.svelte";
     import type { InputHandlerAPI } from "../../sveltelib/input-handler";
     import type { EditingInputAPI, FocusableInputAPI } from "../EditingArea.svelte";
     import type { SurroundedAPI } from "../surround";
@@ -18,8 +17,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         moveCaretToEnd(): void;
         toggle(): boolean;
         inputHandler: InputHandlerAPI;
-        /** The API exposed by the editable component */
-        editable: ContentEditableAPI;
         customStyles: Promise<CustomStyles>;
     }
 
@@ -147,7 +144,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         getInputAPI,
         moveCaretToEnd,
         inputHandler,
-        editable: {} as ContentEditableAPI,
         customStyles,
     };
 
@@ -162,7 +158,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                 props: {
                     resolve,
                     inputHandlers: [setupInputHandler, setupGlobalInputHandler],
-                    api: api.editable,
                 },
                 context: allContexts,
             });

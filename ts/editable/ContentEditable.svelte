@@ -2,31 +2,16 @@
 Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
-<script context="module" lang="ts">
-    export type { ContentEditableAPI } from "./content-editable";
-</script>
-
 <script lang="ts">
     import { updateAllState } from "../components/WithState.svelte";
     import actionList from "../sveltelib/action-list";
     import type { SetupInputHandlerAction } from "../sveltelib/input-handler";
-    import type { ContentEditableAPI } from "./content-editable";
-    import {
-        fixRTLKeyboardNav,
-        preventBuiltinShortcuts,
-        useFocusHandler,
-    } from "./content-editable";
+    import { fixRTLKeyboardNav, preventBuiltinShortcuts } from "./content-editable";
 
     export let resolve: (editable: HTMLElement) => void;
     export let inputHandlers: SetupInputHandlerAction[];
 
     const inputHandlerAction = actionList(inputHandlers);
-
-    export let api: Partial<ContentEditableAPI>;
-
-    const [focusHandler, setupFocusHandling] = useFocusHandler();
-
-    Object.assign(api, { focusHandler });
 </script>
 
 <anki-editable
@@ -34,7 +19,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     role="textbox"
     tabindex="0"
     use:resolve
-    use:setupFocusHandling
     use:preventBuiltinShortcuts
     use:fixRTLKeyboardNav
     use:inputHandlerAction={{}}
