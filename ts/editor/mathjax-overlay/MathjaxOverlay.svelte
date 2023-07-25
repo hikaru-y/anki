@@ -95,8 +95,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     function placeHandle(after: boolean): void {
-        richTextInput!.editable.focusHandler.flushCaret();
-
         if (after) {
             (mathjaxElement as any).placeCaretAfter();
         } else {
