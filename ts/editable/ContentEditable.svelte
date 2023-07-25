@@ -7,11 +7,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <script lang="ts">
-    import type { Writable } from "svelte/store";
-
     import { updateAllState } from "../components/WithState.svelte";
     import actionList from "../sveltelib/action-list";
-    import type { MirrorAction } from "../sveltelib/dom-mirror";
     import type { SetupInputHandlerAction } from "../sveltelib/input-handler";
     import type { ContentEditableAPI } from "./content-editable";
     import {
@@ -21,13 +18,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     } from "./content-editable";
 
     export let resolve: (editable: HTMLElement) => void;
-
-    export let mirrors: MirrorAction[];
-    export let nodes: Writable<DocumentFragment>;
-
-    const mirrorAction = actionList(mirrors);
-    const mirrorOptions = { store: nodes };
-
     export let inputHandlers: SetupInputHandlerAction[];
 
     const inputHandlerAction = actionList(inputHandlers);
@@ -47,7 +37,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     use:setupFocusHandling
     use:preventBuiltinShortcuts
     use:fixRTLKeyboardNav
-    use:mirrorAction={mirrorOptions}
     use:inputHandlerAction={{}}
     on:focus
     on:blur

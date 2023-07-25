@@ -17,7 +17,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         element: Promise<HTMLElement>;
         moveCaretToEnd(): void;
         toggle(): boolean;
-        preventResubscription(): () => void;
         inputHandler: InputHandlerAPI;
         /** The API exposed by the editable component */
         editable: ContentEditableAPI;
@@ -69,7 +68,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     import { placeCaretAfterContent } from "../../domlib/place-caret";
     import ContentEditable from "../../editable/ContentEditable.svelte";
-    import useDOMMirror from "../../sveltelib/dom-mirror";
     import useInputHandler from "../../sveltelib/input-handler";
     import { pageTheme } from "../../sveltelib/theme";
     import { context as editingAreaContext } from "../EditingArea.svelte";
@@ -92,7 +90,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     const nodes = getNormalizingNodeStore();
     const [richTextPromise, resolve] = useRichTextResolve();
-    const { mirror, preventResubscription } = useDOMMirror();
     const [inputHandler, setupInputHandler] = useInputHandler();
     const [customStyles, stylesResolve] = promiseWithResolver<CustomStyles>();
 
@@ -149,7 +146,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         toggle,
         getInputAPI,
         moveCaretToEnd,
-        preventResubscription,
         inputHandler,
         editable: {} as ContentEditableAPI,
         customStyles,
@@ -164,9 +160,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             new ContentEditable({
                 target: element.shadowRoot!,
                 props: {
-                    nodes,
                     resolve,
-                    mirrors: [mirror],
                     inputHandlers: [setupInputHandler, setupGlobalInputHandler],
                     api: api.editable,
                 },
