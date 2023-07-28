@@ -2,15 +2,20 @@
 Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
+<script context="module" lang="ts">
+    import { writable } from "svelte/store";
+
+    export const mathjaxOverlayActive = writable(false);
+</script>
+
 <script lang="ts">
     import { hasBlockAttribute } from "@tslib/dom";
     import { on } from "@tslib/events";
     import { promiseWithResolver } from "@tslib/promise";
     import type { Callback } from "@tslib/typing";
     import { singleCallback } from "@tslib/typing";
-    import type CodeMirrorLib from "codemirror";
+    import CodeMirror from "editor/CodeMirror.svelte";
     import { tick } from "svelte";
-    import { writable } from "svelte/store";
     import { isComposing } from "sveltelib/composition";
 
     import Popover from "../../components/Popover.svelte";
@@ -32,7 +37,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     let cleanup: Callback;
     let richTextInput: RichTextInputAPI | null = null;
-    let allowPromise = Promise.resolve();
+    let resetPromise: ReturnType<typeof promiseWithResolver<void>>[0] | undefined;
+    let resetResolve: ReturnType<typeof promiseWithResolver<void>>[1] | undefined;
 
     async function initialize(input: EditingInputAPI | null): Promise<void> {
         cleanup?.();
@@ -52,7 +58,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         // Wait if the mathjax overlay is still active
-        await allowPromise;
+        await resetPromise;
 
         if (!isRichText) {
             richTextInput = null;
@@ -67,11 +73,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     let activeImage: HTMLImageElement | null = null;
     let mathjaxElement: HTMLElement | null = null;
 
-    let allowResubscription: Callback;
     let unsubscribe: Callback;
 
     let selectAll = false;
-    let position: CodeMirrorLib.Position | undefined = undefined;
+    let position: number | undefined = undefined;
 
     /**
      * Will contain the Mathjax text with unescaped entities.
@@ -79,21 +84,17 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
      */
     const code = writable("");
 
-    function showOverlay(image: HTMLImageElement, pos?: CodeMirrorLib.Position) {
+    function showOverlay(image: HTMLImageElement, pos?: number) {
         if ($isComposing) {
             // Should be canceled while an IME composition session is active
             return;
         }
 
-        const [promise, allowResolve] = promiseWithResolver<void>();
-
-        allowPromise = promise;
-        allowResubscription = singleCallback(
-            richTextInput!.preventResubscription(),
-            allowResolve,
-        );
+        [resetPromise, resetResolve] = promiseWithResolver<void>();
 
         position = pos;
+
+        mathjaxOverlayActive.set(true);
 
         /* Setting the activeImage and mathjaxElement to a non-nullish value is
          * what triggers the Mathjax editor to show */
@@ -107,8 +108,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     function placeHandle(after: boolean): void {
-        richTextInput!.editable.focusHandler.flushCaret();
-
         if (after) {
             (mathjaxElement as any).placeCaretAfter();
         } else {
@@ -120,11 +119,17 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         selectAll = false;
         position = undefined;
 
-        allowResubscription?.();
+        if (mathjaxElement?.dataset.mathjax === "") {
+            mathjaxElement.dataset.delete = "";
+        }
 
         if (activeImage && mathjaxElement) {
             clear();
         }
+
+        mathjaxOverlayActive.set(false);
+        resetResolve?.();
+        resetResolve = undefined;
     }
 
     function clear(): void {
@@ -156,6 +161,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     async function showOverlayIfMathjaxClicked({ target }: Event): Promise<void> {
         if (target instanceof HTMLImageElement && target.dataset.anki === "mathjax") {
             resetHandle();
+            await tick();
             showOverlay(target);
         }
     }
@@ -164,16 +170,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         detail,
     }: CustomEvent<{
         image: HTMLImageElement;
-        position?: [number, number];
+        position?: number;
     }>): Promise<void> {
-        let position: CodeMirrorLib.Position | undefined = undefined;
-
-        if (detail.position) {
-            const [line, ch] = detail.position;
-            position = { line, ch };
-        }
-
-        showOverlay(detail.image, position);
+        await tick();
+        showOverlay(detail.image, detail.position);
     }
 
     async function showSelectAll({
@@ -229,7 +229,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                             resetHandle();
                         }}
                         on:close={resetHandle}
-                        let:editor={mathjaxEditor}
+                        let:codeMirror
                     >
                         <Shortcut
                             keyCombination={acceptShortcut}
@@ -256,16 +256,20 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                             on:delete={async () => {
                                 if (activeImage) {
                                     placeCaretAfter(activeImage);
-                                    mathjaxElement?.remove();
+                                    // TODO:
+                                    // mathjaxElement?.remove();
+                                    mathjaxElement?.setAttribute("data-delete", "");
                                     clear();
                                 }
                             }}
                             on:surround={async ({ detail }) => {
-                                const editor = await mathjaxEditor.editor;
                                 const { prefix, suffix } = detail;
-
-                                editor.replaceSelection(
-                                    prefix + editor.getSelection() + suffix,
+                                if (!codeMirror) {
+                                    return;
+                                }
+                                const selectedText = await codeMirror.getSelection();
+                                codeMirror.replaceSelection(
+                                    prefix + selectedText + suffix,
                                 );
                             }}
                         />

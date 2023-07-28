@@ -5,7 +5,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 <script context="module" lang="ts">
     import { writable } from "svelte/store";
 
-    import type { ContentEditableAPI } from "../../editable/ContentEditable.svelte";
+    // import type { ContentEditableAPI } from "../../editable/ContentEditable.svelte";
     import type { InputHandlerAPI } from "../../sveltelib/input-handler";
     import type { EditingInputAPI, FocusableInputAPI } from "../EditingArea.svelte";
     import type { SurroundedAPI } from "../surround";
@@ -20,7 +20,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         preventResubscription(): () => void;
         inputHandler: InputHandlerAPI;
         /** The API exposed by the editable component */
-        editable: ContentEditableAPI;
+        // editable: ContentEditableAPI;
         customStyles: Promise<CustomStyles>;
     }
 
@@ -84,7 +84,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export const focusFlag = new Flag();
 
     const { focusedInput } = noteEditorContext.get();
-    const { content, editingInputs } = editingAreaContext.get();
+    const { fieldStore, editingInputs } = editingAreaContext.get();
 
     const fontFamily = getContext<Readable<string>>(fontFamilyKey);
     const fontSize = getContext<Readable<number>>(fontSizeKey);
@@ -151,7 +151,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         moveCaretToEnd,
         preventResubscription,
         inputHandler,
-        editable: {} as ContentEditableAPI,
+        // editable: {} as ContentEditableAPI,
         customStyles,
     };
 
@@ -164,11 +164,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             new ContentEditable({
                 target: element.shadowRoot!,
                 props: {
-                    nodes,
+                    // nodes,
                     resolve,
-                    mirrors: [mirror],
+                    // mirrors: [mirror],
                     inputHandlers: [setupInputHandler, setupGlobalInputHandler],
-                    api: api.editable,
+                    // api: api.editable,
                 },
                 context: allContexts,
             });
@@ -205,14 +205,14 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         $editingInputs.push(api);
         $editingInputs = $editingInputs;
 
-        return singleCallback(
-            content.subscribe((html: string): void =>
-                nodes.setUnprocessed(storedToFragment(html)),
-            ),
-            nodes.subscribe((fragment: DocumentFragment): void =>
-                content.set(fragmentToStored(fragment)),
-            ),
-        );
+        // return singleCallback(
+        //     content.subscribe((html: string): void =>
+        //         nodes.setUnprocessed(storedToFragment(html)),
+        //     ),
+        //     nodes.subscribe((fragment: DocumentFragment): void =>
+        //         content.set(fragmentToStored(fragment)),
+        //     ),
+        // );
     });
 
     setContextProperty(api);
@@ -232,7 +232,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         <div class="rich-text-relative">
             <div
                 class="rich-text-editable"
-                class:empty={$content.length === 0}
+                class:empty={$fieldStore.content.length === 0}
                 bind:this={richTextDiv}
                 use:attachShadow
                 use:attachStyles

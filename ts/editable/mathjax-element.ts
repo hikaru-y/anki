@@ -6,6 +6,7 @@ import { on } from "@tslib/events";
 import { placeCaretAfter, placeCaretBefore } from "../domlib/place-caret";
 import type { DecoratedElement, DecoratedElementConstructor } from "./decorated";
 import { FrameElement, frameElement } from "./frame-element";
+import { frameElementTagName } from "./frame-handle";
 import Mathjax_svelte from "./Mathjax.svelte";
 
 const mathjaxTagPattern = /<anki-mathjax(?:[^>]*?block="(.*?)")?[^>]*?>(.*?)<\/anki-mathjax>/gsu;
@@ -26,6 +27,20 @@ export const mathjaxConfig = {
 
 export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLElement implements DecoratedElement {
     static tagName = "anki-mathjax";
+
+    static replaceWithTextNode(fragment: DocumentFragment): void {
+        fragment.querySelectorAll(frameElementTagName).forEach((frame) => {
+            const mathjax = frame.querySelector<HTMLElement>(this.tagName);
+            if (mathjax) {
+                const [prefix, suffix] = mathjax.getAttribute("block") === "true"
+                    ? ["\\[", "\\]"]
+                    : ["\\(", "\\)"];
+                const data = mathjax.dataset.mathjax;
+                const text = document.createTextNode(`${prefix}${data}${suffix}`);
+                frame.replaceWith(text);
+            }
+        });
+    }
 
     static toStored(undecorated: string): string {
         const stored = undecorated.replace(
@@ -61,10 +76,11 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
     component?: Mathjax_svelte;
 
     static get observedAttributes(): string[] {
-        return ["block", "data-mathjax"];
+        return ["block", "data-mathjax", "data-delete"];
     }
 
     connectedCallback(): void {
+        console.log("connectedCallback");
         this.decorate();
         this.addEventListeners();
     }
@@ -74,6 +90,7 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
     }
 
     attributeChangedCallback(name: string, old: string, newValue: string): void {
+        console.log(name, old, newValue);
         if (newValue === old) {
             return;
         }
@@ -91,10 +108,18 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
                 }
                 this.component?.$set({ mathjax: newValue });
                 break;
+            case "data-delete":
+                if (this.parentElement?.tagName === FrameElement.tagName.toUpperCase()) {
+                    this.parentElement.remove();
+                } else {
+                    console.log("delete !!!!!!!!!!!");
+                }
+                break;
         }
     }
 
     decorate(): void {
+        console.log("decorate");
         if (this.hasAttribute("decorated")) {
             this.undecorate();
         }
@@ -123,14 +148,9 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
         });
 
         if (this.hasAttribute("focusonmount")) {
-            let position: [number, number] | undefined = undefined;
-
-            if (this.getAttribute("focusonmount")!.length > 0) {
-                position = this.getAttribute("focusonmount")!
-                    .split(",")
-                    .map(Number) as [number, number];
-            }
-
+            const position = this.getAttribute("focusonmount")
+                ? Number(this.getAttribute("focusonmount"))
+                : undefined;
             this.component.moveCaretAfter(position);
         }
 
@@ -139,6 +159,7 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
     }
 
     undecorate(): void {
+        console.log("undecorate");
         if (this.parentElement?.tagName === FrameElement.tagName.toUpperCase()) {
             this.parentElement.replaceWith(this);
         }

@@ -191,6 +191,7 @@ export class FrameElement extends HTMLElement {
     }
 
     insertLineBreak(offset: number): void {
+        console.log("insertLineBreak@frame-element.ts");
         const lineBreak = document.createElement("br");
 
         if (offset === 0) {
@@ -260,4 +261,22 @@ export function frameElement(element: HTMLElement, block: boolean): FrameElement
     range.surroundContents(frame);
 
     return frame;
+}
+
+/**
+ * Converts frame elements to text nodes, which serves as a preliminary step
+ * to retrieve the HTML in the format to be stored in DB.
+ */
+export function replaceFrameElementsWithTextNodes(fragment: DocumentFragment) {
+    fragment.querySelectorAll("anki-frame").forEach((frame) => {
+        const mathjax = frame.querySelector<HTMLElement>("anki-mathjax");
+        if (mathjax) {
+            const [prefix, suffix] = mathjax.getAttribute("block") === "true"
+                ? ["\\[", "\\]"]
+                : ["\\(", "\\)"];
+            const data = mathjax.dataset.mathjax;
+            const text = document.createTextNode(`${prefix}${data}${suffix}`);
+            frame.replaceWith(text);
+        }
+    });
 }

@@ -22,6 +22,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         element: Promise<HTMLElement>;
         direction: Readable<"ltr" | "rtl">;
         editingArea: EditingAreaAPI;
+        undoStack: UndoStack;
     }
 
     import { registerPackage } from "@tslib/runtime-require";
@@ -53,8 +54,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import Collapsible from "../components/Collapsible.svelte";
     import type { Destroyable } from "./destroyable";
     import EditingArea from "./EditingArea.svelte";
+    import type { ContentInfo } from "./types";
+    import { UndoStack } from "./undo";
 
-    export let content: Writable<string>;
+    export let fieldStore: Writable<ContentInfo>;
     export let field: FieldData;
     export let collapsed = false;
     export let flipInputs = false;
@@ -73,6 +76,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const editingArea: Partial<EditingAreaAPI> = {};
     const [element, elementResolve] = promiseWithResolver<HTMLElement>();
 
+    const undoStack = new UndoStack(fieldStore);
+    console.log(999);
+
     let apiPartial: Partial<EditorFieldAPI> & Destroyable;
     export { apiPartial as api };
 
@@ -80,6 +86,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         element,
         direction: directionStore,
         editingArea: editingArea as EditingAreaAPI,
+        undoStack,
     });
 
     setContextProperty(api);
@@ -101,7 +108,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             {hidden}
         >
             <EditingArea
-                {content}
+                {fieldStore}
                 fontFamily={field.fontFamily}
                 fontSize={field.fontSize}
                 api={editingArea}

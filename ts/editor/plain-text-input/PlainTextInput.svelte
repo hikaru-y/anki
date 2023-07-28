@@ -6,14 +6,12 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { registerPackage } from "@tslib/runtime-require";
 
     import lifecycleHooks from "../../sveltelib/lifecycle-hooks";
-    import type { CodeMirrorAPI } from "../CodeMirror.svelte";
     import type { EditingInputAPI, FocusableInputAPI } from "../EditingArea.svelte";
 
     export interface PlainTextInputAPI extends EditingInputAPI {
         name: "plain-text";
         moveCaretToEnd(): void;
         toggle(): boolean;
-        codeMirror: CodeMirrorAPI;
     }
 
     export const parsingInstructions: string[] = [];
@@ -29,12 +27,14 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <script lang="ts">
-    import { singleCallback } from "@tslib/typing";
+    import { standardKeymap } from "@codemirror/commands";
+    import { html } from "@codemirror/lang-html";
+    import { Compartment } from "@codemirror/state";
+    import type { EditorView } from "@codemirror/view";
     import { onMount, tick } from "svelte";
     import { writable } from "svelte/store";
 
     import { pageTheme } from "../../sveltelib/theme";
-    import { baseOptions, gutterOptions, htmlanki } from "../code-mirror";
     import CodeMirror from "../CodeMirror.svelte";
     import { context as editingAreaContext } from "../EditingArea.svelte";
     import { Flag } from "../helpers";
@@ -45,34 +45,23 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export let hidden = false;
     export const focusFlag = new Flag();
 
-    $: configuration = {
-        mode: htmlanki,
-        ...baseOptions,
-        ...gutterOptions,
-        ...{ autoCloseTags: $closeHTMLTags },
-    };
-
     const { focusedInput } = noteEditorContext.get();
-    const { editingInputs, content } = editingAreaContext.get();
-    const code = writable($content);
+    const { editingInputs, fieldStore } = editingAreaContext.get();
+    const code = writable($fieldStore.content);
 
-    let codeMirror = {} as CodeMirrorAPI;
+    let codeMirror: CodeMirror | undefined;
+    let focused = false;
 
     async function focus(): Promise<void> {
-        const editor = await codeMirror.editor;
-        editor.focus();
+        codeMirror?.focus();
     }
 
     async function moveCaretToEnd(): Promise<void> {
-        const editor = await codeMirror.editor;
-        editor.setCursor(editor.lineCount(), 0);
+        codeMirror?.moveCaretToEnd();
     }
 
     async function refocus(): Promise<void> {
-        const editor = (await codeMirror.editor) as any;
-        editor.display.input.blur();
-
-        focus();
+        codeMirror?.blur();
         moveCaretToEnd();
     }
 
@@ -82,13 +71,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     async function getInputAPI(target: EventTarget): Promise<FocusableInputAPI | null> {
-        const editor = (await codeMirror.editor) as any;
-
-        if (target === editor.display.input.textarea) {
+        if (target === codeMirror?.maybeGetView()?.contentDOM) {
             return api;
+        } else {
+            return null;
         }
-
-        return null;
     }
 
     export const api: PlainTextInputAPI = {
@@ -99,7 +86,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         refocus,
         toggle,
         getInputAPI,
-        codeMirror,
     };
 
     /**
@@ -110,41 +96,44 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         $editingInputs = $editingInputs;
     }
 
-    async function refresh(): Promise<void> {
-        const editor = await codeMirror.editor;
-        editor.refresh();
-    }
-
     $: {
         pushUpdate(!hidden);
-        tick().then(() => {
-            refresh();
-            if (focusFlag.checkAndReset()) {
-                refocus();
-            }
-        });
+        if (focusFlag.checkAndReset()) {
+            tick().then(refocus);
+        }
     }
 
     function onChange({ detail: html }: CustomEvent<string>): void {
-        code.set(removeProhibitedTags(html));
+        // code.set(removeProhibitedTags(html));
+        if (focused) {
+            fieldStore.set({ content: removeProhibitedTags(html) });
+        }
     }
+
+    const keyBindings = [...standardKeymap];
+    const langCompartment = new Compartment();
+    const restParams: Parameters<typeof html>[0] = { matchClosingTags: true };
+    const langExtension = langCompartment.of(
+        html({ autoCloseTags: $closeHTMLTags, ...restParams }),
+    );
+
+    // Reconfigure when 'Auto-close HTML tags' option is toggled
+    $: codeMirror?.maybeGetView()?.dispatch({
+        effects: langCompartment.reconfigure(
+            html({ autoCloseTags: $closeHTMLTags, ...restParams }),
+        ),
+    });
 
     onMount(() => {
         $editingInputs.push(api);
         $editingInputs = $editingInputs;
 
-        return singleCallback(
-            content.subscribe((html: string): void =>
-                /* We call `removeProhibitedTags` here, because content might
-                 * have been changed outside the editor, and we need to parse
-                 * it to get the "neutral" value. Otherwise, there might be
-                 * conflicts with other editing inputs */
-                code.set(removeProhibitedTags(storedToUndecorated(html))),
-            ),
-            code.subscribe((html: string): void =>
-                content.set(undecoratedToStored(html)),
-            ),
-        );
+        const unsubscribe = fieldStore.subscribe(({ content, forceUpdate }) => {
+            if (forceUpdate || !focused) {
+                codeMirror?.setValue(content);
+            }
+        });
+        return unsubscribe;
     });
 
     setupLifecycleHooks(api);
@@ -157,11 +146,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     {hidden}
 >
     <CodeMirror
-        {configuration}
+        {langExtension}
+        {keyBindings}
         {code}
         {hidden}
-        bind:api={codeMirror}
+        gutterEnabled
+        bind:this={codeMirror}
         on:change={onChange}
+        on:focusin={() => (focused = true)}
+        on:focusout={() => (focused = false)}
     />
 </div>
 

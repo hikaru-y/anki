@@ -67,7 +67,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import PlainTextBadge from "./PlainTextBadge.svelte";
     import RichTextInput, { editingInputIsRichText } from "./rich-text-input";
     import RichTextBadge from "./RichTextBadge.svelte";
-    import type { NotetypeIdAndModTime, SessionOptions } from "./types";
+    import type { ContentInfo, NotetypeIdAndModTime, SessionOptions } from "./types";
 
     function quoteFontFamily(fontFamily: string): string {
         // generic families (e.g. sans-serif) must not be quoted
@@ -95,7 +95,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
     }
 
-    const fieldStores: Writable<string>[] = [];
+    const fieldStores: Writable<ContentInfo>[] = [];
     let fieldNames: string[] = [];
     export function setFields(fs: [string, string][]): void {
         // this is a bit of a mess -- when moving to Rust calls, we should make
@@ -110,9 +110,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         for (let i = fieldStores.length; i < newFieldNames.length; i++) {
-            const newStore = writable("");
+            const newStore = writable<ContentInfo>({ content: "" });
             fieldStores[i] = newStore;
-            newStore.subscribe((value) => updateField(i, value));
+            newStore.subscribe(({ content }) => updateField(i, content));
         }
 
         for (
@@ -123,8 +123,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             fieldStores.pop();
         }
 
-        for (const [index, [, fieldContent]] of fs.entries()) {
-            fieldStores[index].set(fieldContent);
+        for (const [index, [, content]] of fs.entries()) {
+            fieldStores[index].set({ content, forceUpdate: true });
         }
 
         fieldNames = newFieldNames;
@@ -218,9 +218,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export function setNoteId(ntid: number): void {
         // TODO this is a hack, because it requires the NoteEditor to know implementation details of the PlainTextInput.
         // It should be refactored once we work on our own Undo stack
-        for (const pi of plainTextInputs) {
-            pi.api.codeMirror.editor.then((editor) => editor.clearHistory());
-        }
+        // for (const pi of plainTextInputs) {
+        //     pi.api.codeMirror.editor.then((editor) => editor.clearHistory());
+        // }
         noteId = ntid;
     }
 
@@ -422,7 +422,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     // update cloze deletions and set occlusion fields, it call in saveNow to update cloze deletions
     function updateIONoteInEditMode() {
         if (isEditMode) {
-            const clozeNote = get(fieldStores[0]);
+            const clozeNote = get(fieldStores[0]).content;
             if (clozeNote.includes("oi=1")) {
                 setOcclusionField(true);
             } else {
@@ -455,7 +455,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         // set fields data for occlusion and image fields for io notes type
         if (isImageOcclusion) {
             const occlusionsData = exportShapesToClozeDeletions(occludeInactive);
-            fieldStores[0].set(occlusionsData.clozes);
+            fieldStores[0].set({ content: occlusionsData.clozes, forceUpdate: true });
         }
     }
 
@@ -588,11 +588,11 @@ the AddCards dialog) should be implemented in the user of this component.
     {#if !$ioMaskEditorVisible}
         <Fields>
             {#each fieldsData as field, index}
-                {@const content = fieldStores[index]}
+                {@const fieldStore = fieldStores[index]}
 
                 <EditorField
                     {field}
-                    {content}
+                    {fieldStore}
                     flipInputs={plainTextDefaults[index]}
                     api={fields[index]}
                     on:focusin={() => {
@@ -605,7 +605,7 @@ the AddCards dialog) should be implemented in the user of this component.
                         setAddonButtonsDisabled(true);
                         bridgeCommand(
                             `blur:${index}:${getNoteId()}:${transformContentBeforeSave(
-                                get(content),
+                                get(fieldStore).content,
                             )}`,
                         );
                     }}

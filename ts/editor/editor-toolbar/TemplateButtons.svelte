@@ -42,10 +42,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         [mediaPromise, resolve] = promiseWithResolver<string>();
-        ($focusedInput as RichTextInputAPI).editable.focusHandler.focus.on(
-            async () => setFormat("inserthtml", await mediaPromise),
-            { once: true },
-        );
+        mediaPromise.then((media) => setFormat("inserthtml", media));
+        // ($focusedInput as RichTextInputAPI).editable.focusHandler.focus.on(
+        //     async () => setFormat("inserthtml", await mediaPromise),
+        //     { once: true },
+        // );
 
         bridgeCommand("attach");
     }
@@ -62,10 +63,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
 
         [mediaPromise, resolve] = promiseWithResolver<string>();
-        ($focusedInput as RichTextInputAPI).editable.focusHandler.focus.on(
-            async () => setFormat("inserthtml", await mediaPromise),
-            { once: true },
-        );
+        mediaPromise.then((media) => setFormat("inserthtml", media));
+        // ($focusedInput as RichTextInputAPI).editable.focusHandler.focus.on(
+        //     async () => setFormat("inserthtml", await mediaPromise),
+        //     { once: true },
+        // );
 
         bridgeCommand("record");
     }

@@ -1,6 +1,16 @@
 // Copyright: Ankitects Pty Ltd and contributors
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+export type ContentInfo = {
+    content: string;
+    /**
+     * If true, editing inputs subscribed to the fieldStore need to be updated,
+     * even if they are in focus.
+     */
+    forceUpdate?: boolean;
+    restoreCaret?: boolean;
+};
+
 export type EditorOptions = {
     fieldsCollapsed: boolean[];
     fieldStates: {
