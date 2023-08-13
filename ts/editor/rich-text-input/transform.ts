@@ -13,7 +13,7 @@ function adjustInputHTML(html: string): string {
     return html;
 }
 
-function adjustInputFragment(fragment: DocumentFragment): void {
+export function adjustInputFragment(fragment: DocumentFragment): void {
     if (nodeContainsInlineContent(fragment)) {
         fragment.appendChild(document.createElement("br"));
     }
@@ -54,4 +54,14 @@ export function fragmentToStored(fragment: DocumentFragment): string {
 
     const storedHTML = adjustOutputHTML(fragmentToString(clone));
     return storedHTML;
+}
+
+const tmpl = document.createElement("template");
+
+export function editableToStored(editable: HTMLElement): string {
+    editable.normalize();
+    tmpl.innerHTML = editable.innerHTML;
+    adjustOutputFragment(tmpl.content);
+    decoratedElements.replaceWithTextNode(tmpl.content);
+    return tmpl.innerHTML;
 }

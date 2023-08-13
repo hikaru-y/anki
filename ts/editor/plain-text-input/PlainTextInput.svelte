@@ -29,7 +29,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <script lang="ts">
-    import { singleCallback } from "@tslib/typing";
     import { onMount, tick } from "svelte";
     import { writable } from "svelte/store";
 
@@ -40,7 +39,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { Flag } from "../helpers";
     import { context as noteEditorContext } from "../NoteEditor.svelte";
     import removeProhibitedTags from "./remove-prohibited";
-    import { storedToUndecorated, undecoratedToStored } from "./transform";
 
     export let hidden = false;
     export let fieldCollapsed = false;
@@ -58,6 +56,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const code = writable($fieldStore.content);
 
     let codeMirror = {} as CodeMirrorAPI;
+    let focused = false;
 
     async function focus(): Promise<void> {
         const editor = await codeMirror.editor;
@@ -127,25 +126,20 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     function onChange({ detail: html }: CustomEvent<string>): void {
-        code.set(removeProhibitedTags(html));
+        if (focused) {
+            fieldStore.set({ content: removeProhibitedTags(html) });
+        }
     }
 
     onMount(() => {
         $editingInputs.push(api);
         $editingInputs = $editingInputs;
 
-        return singleCallback(
-            content.subscribe((html: string): void =>
-                /* We call `removeProhibitedTags` here, because content might
-                 * have been changed outside the editor, and we need to parse
-                 * it to get the "neutral" value. Otherwise, there might be
-                 * conflicts with other editing inputs */
-                code.set(removeProhibitedTags(storedToUndecorated(html))),
-            ),
-            code.subscribe((html: string): void =>
-                content.set(undecoratedToStored(html)),
-            ),
-        );
+        return fieldStore.subscribe(({ content, noteLoaded }) => {
+            if (noteLoaded || !focused) {
+                codeMirror.editor.then((cm) => cm.setValue(content));
+            }
+        });
     });
 
     setupLifecycleHooks(api);
@@ -163,6 +157,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         {hidden}
         bind:api={codeMirror}
         on:change={onChange}
+        on:focus={() => (focused = true)}
+        on:blur={() => (focused = false)}
     />
 </div>
 

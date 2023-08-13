@@ -34,6 +34,7 @@ export interface DecoratedElementConstructor extends CustomElementConstructor, W
      * Transforms elements in input HTML from stored to undecorated state.
      */
     toUndecorated(stored: string): string;
+    replaceWithTextNode(fragment): void;
 }
 
 export class CustomElementArray extends Array<DecoratedElementConstructor> {
@@ -68,5 +69,9 @@ export class CustomElementArray extends Array<DecoratedElementConstructor> {
         }
 
         return result;
+    }
+
+    replaceWithTextNode(fragment: DocumentFragment): void {
+        this.forEach((element) => element.replaceWithTextNode(fragment));
     }
 }
