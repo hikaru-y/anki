@@ -21,12 +21,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import type { Writable } from "svelte/store";
 
     import { pageTheme } from "../sveltelib/theme";
-    import {
-        darkTheme,
-        lightTheme,
-        openCodeMirror,
-        setupCodeMirror,
-    } from "./code-mirror";
+    import { darkTheme, lightTheme, openCodeMirror } from "./code-mirror";
 
     export let configuration: CodeMirrorLib.EditorConfiguration;
     export let code: Writable<string>;
@@ -64,7 +59,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     onMount(async () => {
         const editor = await editorPromise;
-        setupCodeMirror(editor, code);
+        editor.getInputField().tabIndex = 0;
+        editor.setValue($code);
         editor.on("change", () => dispatch("change", editor.getValue()));
         editor.on("focus", (codeMirror, event) =>
             dispatch("focus", { codeMirror, event }),

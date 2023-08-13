@@ -6,6 +6,7 @@ import { on } from "@tslib/events";
 import { placeCaretAfter, placeCaretBefore } from "../domlib/place-caret";
 import type { DecoratedElement, DecoratedElementConstructor } from "./decorated";
 import { FrameElement, frameElement } from "./frame-element";
+import { frameElementTagName } from "./frame-handle";
 import Mathjax_svelte from "./Mathjax.svelte";
 
 const mathjaxTagPattern = /<anki-mathjax(?:[^>]*?block="(.*?)")?[^>]*?>(.*?)<\/anki-mathjax>/gsu;
@@ -54,6 +55,20 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
                 const trimmed = trimBreaks(text);
                 return `<${Mathjax.tagName}>${trimmed}</${Mathjax.tagName}>`;
             });
+    }
+
+    static replaceWithTextNode(fragment: DocumentFragment): void {
+        fragment.querySelectorAll(frameElementTagName).forEach((frame) => {
+            const mathjax = frame.querySelector<HTMLElement>(this.tagName);
+            if (mathjax) {
+                const [prefix, suffix] = mathjax.getAttribute("block") === "true"
+                    ? ["\\[", "\\]"]
+                    : ["\\(", "\\)"];
+                const data = mathjax.dataset.mathjax;
+                const text = document.createTextNode(`${prefix}${data}${suffix}`);
+                frame.replaceWith(text);
+            }
+        });
     }
 
     block = false;

@@ -59,7 +59,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 <script lang="ts">
     import { directionKey, fontFamilyKey, fontSizeKey } from "@tslib/context-keys";
     import { promiseWithResolver } from "@tslib/promise";
-    import { singleCallback } from "@tslib/typing";
     import { getAllContexts, getContext, onMount, tick } from "svelte";
     import type { Readable } from "svelte/store";
 
@@ -70,10 +69,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { context as editingAreaContext } from "../EditingArea.svelte";
     import { Flag } from "../helpers";
     import { context as noteEditorContext } from "../NoteEditor.svelte";
-    import getNormalizingNodeStore from "./normalizing-node-store";
     import useRichTextResolve from "./rich-text-resolve";
     import RichTextStyles from "./RichTextStyles.svelte";
-    import { fragmentToStored, storedToFragment } from "./transform";
 
     export let hidden = false;
     export const focusFlag = new Flag();
@@ -85,7 +82,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const fontSize = getContext<Readable<number>>(fontSizeKey);
     const direction = getContext<Readable<"ltr" | "rtl">>(directionKey);
 
-    const nodes = getNormalizingNodeStore();
     const [richTextPromise, resolve] = useRichTextResolve();
     const [inputHandler, setupInputHandler] = useInputHandler();
     const [customStyles, stylesResolve] = promiseWithResolver<CustomStyles>();
@@ -193,15 +189,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     onMount(() => {
         $editingInputs.push(api);
         $editingInputs = $editingInputs;
-
-        return singleCallback(
-            content.subscribe((html: string): void =>
-                nodes.setUnprocessed(storedToFragment(html)),
-            ),
-            nodes.subscribe((fragment: DocumentFragment): void =>
-                content.set(fragmentToStored(fragment)),
-            ),
-        );
     });
 
     setContextProperty(api);
