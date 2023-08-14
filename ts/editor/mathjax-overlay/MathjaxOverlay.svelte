@@ -18,6 +18,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import WithFloating from "../../components/WithFloating.svelte";
     import WithOverlay from "../../components/WithOverlay.svelte";
     import { placeCaretAfter } from "../../domlib/place-caret";
+    import { pretendingEditableHasFocus } from "../../editable/ContentEditable.svelte";
     import { escapeSomeEntities, unescapeSomeEntities } from "../../editable/mathjax";
     import { Mathjax } from "../../editable/mathjax-element";
     import type { EditingInputAPI } from "../EditingArea.svelte";
@@ -30,7 +31,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     const { focusedInput } = context.get();
 
     let cleanup: Callback;
-    let allowPromise = Promise.resolve();
+    let resetPromise: ReturnType<typeof promiseWithResolver<void>>[0] | undefined;
+    let resetResolve: ReturnType<typeof promiseWithResolver<void>>[1] | undefined;
 
     async function initialize(input: EditingInputAPI | null): Promise<void> {
         cleanup?.();
@@ -48,9 +50,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                 on(container, "selectall" as any, showSelectAll),
             );
         }
-
-        // Wait if the mathjax overlay is still active
-        await allowPromise;
     }
 
     $: initialize($focusedInput);
@@ -58,7 +57,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     let activeImage: HTMLImageElement | null = null;
     let mathjaxElement: HTMLElement | null = null;
 
-    let allowResubscription: Callback;
     let unsubscribe: Callback;
 
     let selectAll = false;
@@ -70,18 +68,18 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
      */
     const code = writable("");
 
-    function showOverlay(image: HTMLImageElement, pos?: CodeMirrorLib.Position) {
+    async function showOverlay(image: HTMLImageElement, pos?: CodeMirrorLib.Position) {
         if ($isComposing) {
             // Should be canceled while an IME composition session is active
             return;
         }
 
-        const [promise, allowResolve] = promiseWithResolver<void>();
+        // Wait if the mathjax overlay is still active
+        await resetPromise;
 
-        allowPromise = promise;
-        allowResubscription = singleCallback(allowResolve);
-
+        [resetPromise, resetResolve] = promiseWithResolver<void>();
         position = pos;
+        pretendingEditableHasFocus.set(true);
 
         /* Setting the activeImage and mathjaxElement to a non-nullish value is
          * what triggers the Mathjax editor to show */
@@ -106,11 +104,13 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         selectAll = false;
         position = undefined;
 
-        allowResubscription?.();
-
         if (activeImage && mathjaxElement) {
             clear();
         }
+
+        pretendingEditableHasFocus.set(false);
+        resetResolve?.();
+        resetResolve = undefined;
     }
 
     function clear(): void {
@@ -180,6 +180,16 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         await tick();
     }
 
+    function deleteMathjaxElement(): void {
+        if (activeImage) {
+            placeCaretAfter(activeImage);
+            if (mathjaxElement) {
+                mathjaxElement.dataset.delete = "";
+            }
+            clear();
+        }
+    }
+
     const acceptShortcut = "Enter";
     const newlineShortcut = "Shift+Enter";
 </script>
@@ -239,13 +249,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                                 positionOverlay();
                                 positionFloating();
                             }}
-                            on:delete={async () => {
-                                if (activeImage) {
-                                    placeCaretAfter(activeImage);
-                                    mathjaxElement?.remove();
-                                    clear();
-                                }
-                            }}
+                            on:delete={deleteMathjaxElement}
                             on:surround={async ({ detail }) => {
                                 const editor = await mathjaxEditor.editor;
                                 const { prefix, suffix } = detail;
