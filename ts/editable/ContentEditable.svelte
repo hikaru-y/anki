@@ -2,6 +2,12 @@
 Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
+<script context="module" lang="ts">
+    import { writable } from "svelte/store";
+
+    export const pretendingEditableHasFocus = writable(false);
+</script>
+
 <script lang="ts">
     import type { ActionReturn } from "svelte/action";
 
@@ -27,7 +33,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     function syncToFieldStore(editable: HTMLElement): ActionReturn<void> {
         const observer = new MutationObserver(() => {
-            if (focused) {
+            if (focused || $pretendingEditableHasFocus) {
                 fieldStore.set({
                     content: editableToStored(editable),
                 });
@@ -56,7 +62,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     function syncFromFieldStore(editable: HTMLElement): ActionReturn<void> {
         return {
             destroy: fieldStore.subscribe(({ content, noteLoaded }) => {
-                if (noteLoaded || !focused) {
+                if (noteLoaded || (!focused && !$pretendingEditableHasFocus)) {
                     storedToEditable(editable, content);
                 }
             }),

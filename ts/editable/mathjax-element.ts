@@ -76,7 +76,7 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
     component?: Mathjax_svelte;
 
     static get observedAttributes(): string[] {
-        return ["block", "data-mathjax"];
+        return ["block", "data-mathjax", "data-delete"];
     }
 
     connectedCallback(): void {
@@ -105,6 +105,12 @@ export const Mathjax: DecoratedElementConstructor = class Mathjax extends HTMLEl
                     return;
                 }
                 this.component?.$set({ mathjax: newValue });
+                break;
+
+            case "data-delete":
+                if (this.parentElement?.tagName === FrameElement.tagName.toUpperCase()) {
+                    this.parentElement.remove();
+                }
                 break;
         }
     }
