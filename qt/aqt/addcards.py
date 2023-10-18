@@ -115,9 +115,9 @@ class AddCards(QMainWindow):
         self.addButton.setToolTip(shortcut(tr.adding_add_shortcut_ctrlandenter()))
 
         # add io button
-        self.io_add_button = bb.addButton(f"{tr.actions_add()}", ar)
-        qconnect(self.io_add_button.clicked, self.add_io_note)
-        self.io_add_button.setShortcut(QKeySequence("Ctrl+Shift+I"))
+        # self.io_add_button = bb.addButton(f"{tr.actions_add()}", ar)
+        # qconnect(self.io_add_button.clicked, self.add_io_note)
+        # self.io_add_button.setShortcut(QKeySequence("Ctrl+Shift+I"))
 
         # close
         self.closeButton = QPushButton(tr.actions_close())
@@ -141,7 +141,7 @@ class AddCards(QMainWindow):
         self.historyButton = b
 
         # hide io buttons for note type other than image occlusion
-        self.show_hide_add_buttons()
+        # self.show_hide_add_buttons()
 
     def show_hide_add_buttons(self) -> None:
         if self.editor.current_notetype_is_image_occlusion():
@@ -211,7 +211,7 @@ class AddCards(QMainWindow):
         )
 
         # update buttons for image occlusion on note type change
-        self.show_hide_add_buttons()
+        # self.show_hide_add_buttons()
 
     def _load_new_note(self, sticky_fields_from: Optional[Note] = None) -> None:
         note = self._new_note()
@@ -275,6 +275,8 @@ class AddCards(QMainWindow):
 
     def add_current_note(self) -> None:
         self.editor.call_after_note_saved(self._add_current_note)
+        if self.editor.current_notetype_is_image_occlusion():
+            self.editor.web.eval("resetIOImageLoaded();")
 
     def _add_current_note(self) -> None:
         note = self.editor.note
@@ -372,10 +374,10 @@ class AddCards(QMainWindow):
 
         self.ifCanClose(doClose)
 
-    def add_io_note(self) -> None:
-        self.editor.web.eval("setOcclusionFieldInner()")
-        self.add_current_note()
-        self.editor.web.eval("resetIOImageLoaded()")
+    # def add_io_note(self) -> None:
+    #     self.editor.web.eval("setOcclusionFieldInner()")
+    #     self.add_current_note()
+    #     self.editor.web.eval("resetIOImageLoaded()")
 
     # legacy aliases
 

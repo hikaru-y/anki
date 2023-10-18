@@ -13,6 +13,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <script lang="ts">
+    import type { fabric } from "fabric";
     import type { PanZoom } from "panzoom";
     import panzoom from "panzoom";
     import { createEventDispatcher, onDestroy, onMount } from "svelte";
@@ -30,12 +31,14 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     let instance: PanZoom;
     let innerWidth = 0;
     const startingTool = mode.kind === "add" ? "draw-rectangle" : "cursor";
-    $: canvas = null;
+    let canvas: fabric.Canvas | undefined;
 
-    const dispatch = createEventDispatcher();
+    const dispatch = createEventDispatcher<{ change: void }>();
 
     function onChange() {
-        dispatch("change", { canvas });
+        if (canvas) {
+            dispatch("change");
+        }
     }
 
     $: $changeSignal, onChange();

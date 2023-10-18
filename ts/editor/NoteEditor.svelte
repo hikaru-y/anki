@@ -40,6 +40,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <script lang="ts">
+    import type { fabric } from "fabric";
     import { bridgeCommand } from "@tslib/bridgecommand";
     import * as tr from "@tslib/ftl";
     import { resetIOImage } from "image-occlusion/mask-editor";
@@ -104,6 +105,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         // sure to have two backend endpoints for:
         // * the note, which can be set through this view
         // * the fieldname, font, etc., which cannot be set
+        console.log("setFields");
 
         const newFieldNames: string[] = [];
 
@@ -300,6 +302,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     function saveNow(): void {
+        updateIONote();
         closeMathjaxEditor?.();
         $commitTagEdits();
         saveFieldNow();
@@ -424,6 +427,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             fieldStores[ioFields.image].set(options.html);
 
             // new image is being added
+            console.log("isIOImageLoaded", isIOImageLoaded);
             if (isIOImageLoaded) {
                 resetIOImage(options.mode.imagePath);
             }
@@ -444,35 +448,31 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
     globalThis.setImageField = setImageField;
 
-    // update cloze deletions and set occlusion fields, it call in saveNow to update cloze deletions
-    function updateIONoteInEditMode() {
-        if (isEditMode) {
-            const clozeNote = get(fieldStores[ioFields.occlusions]);
-            if (clozeNote.includes("oi=1")) {
-                setOcclusionField(true);
-            } else {
-                setOcclusionField(false);
-            }
-        }
-    }
-
-    function setOcclusionFieldInner() {
+    // update cloze deletions and set occlusion fields
+    function updateIONote(): void {
         if (isImageOcclusion) {
             const occlusionsData = exportShapesToClozeDeletions($hideAllGuessOne);
             fieldStores[ioFields.occlusions].set(occlusionsData.clozes);
         }
     }
+
+    // function setOcclusionFieldInner() {
+    //     if (isImageOcclusion) {
+    //         const occlusionsData = exportShapesToClozeDeletions($hideAllGuessOne);
+    //         fieldStores[ioFields.occlusions].set(occlusionsData.clozes);
+    //     }
+    // }
     // global for calling this method in desktop note editor
-    globalThis.setOcclusionFieldInner = setOcclusionFieldInner;
+    // globalThis.setOcclusionFieldInner = setOcclusionFieldInner;
 
     // reset for new occlusion in add mode
     function resetIOImageLoaded() {
         isIOImageLoaded = false;
-        globalThis.canvas.clear();
-        const page = document.querySelector(".image-occlusion");
-        if (page) {
-            page.remove();
-        }
+        (globalThis.canvas as fabric.Canvas).clear();
+        // const page = document.querySelector(".image-occlusion");
+        // if (page) {
+        //     page.remove();
+        // }
     }
     globalThis.resetIOImageLoaded = resetIOImageLoaded;
 
@@ -572,7 +572,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             setIsEditMode,
             setupMaskEditor,
             setOcclusionField,
-            setOcclusionFieldInner,
+            // setOcclusionFieldInner,
             ...oldEditorAdapter,
         });
 
@@ -635,10 +635,7 @@ the AddCards dialog) should be implemented in the user of this component.
 
     {#if imageOcclusionMode}
         <div style="display: {$ioMaskEditorVisible ? 'block' : 'none'}">
-            <ImageOcclusionPage
-                mode={imageOcclusionMode}
-                on:change={updateIONoteInEditMode}
-            />
+            <ImageOcclusionPage mode={imageOcclusionMode} on:change={updateIONote} />
         </div>
     {/if}
 

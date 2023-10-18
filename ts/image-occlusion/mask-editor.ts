@@ -96,6 +96,7 @@ function initCanvas(onChange: () => void): fabric.Canvas {
     moveShapeToCanvasBoundaries(canvas);
     canvas.on("object:modified", onChange);
     canvas.on("object:removed", onChange);
+    canvas.on("object:added", (e) => console.log(e.target));
     return canvas;
 }
 

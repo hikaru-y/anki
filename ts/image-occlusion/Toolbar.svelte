@@ -22,6 +22,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     } from "./tools/more-tools";
     import { tools } from "./tools/tool-buttons";
     import { undoRedoTools, undoStack } from "./tools/tool-undo-redo";
+    import { emitChangeSignal } from "./MaskEditor.svelte";
 
     export let canvas;
     export let instance;
@@ -72,16 +73,17 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         canvas.selectionColor = "rgba(100, 100, 255, 0.3)";
     };
 
-    const setOcclusionFieldForDesktop = () => {
-        const clist = document.body.classList;
-        if (
-            clist.contains("isLin") ||
-            clist.contains("isMac") ||
-            clist.contains("isWin")
-        ) {
-            globalThis.setOcclusionFieldInner();
-        }
-    };
+    // const setOcclusionFieldForDesktop = () => {
+    //     const clist = document.body.classList;
+    //     if (
+    //         clist.contains("isLin") ||
+    //         clist.contains("isMac") ||
+    //         clist.contains("isWin")
+    //     ) {
+    //         globalThis.setOcclusionFieldInner();
+    //     }
+    // };
+    $: $hideAllGuessOne, console.log(emitChangeSignal), emitChangeSignal?.();
 </script>
 
 <div class="tool-bar-container">
@@ -122,18 +124,14 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
             <Popover slot="floating" --popover-padding-inline="0">
                 <DropdownItem
-                    on:click={() => {
-                        $hideAllGuessOne = true;
-                        setOcclusionFieldForDesktop();
-                    }}
+                    active={$hideAllGuessOne}
+                    on:click={() => ($hideAllGuessOne = true)}
                 >
                     <span>{tr.notetypesHideAllGuessOne()}</span>
                 </DropdownItem>
                 <DropdownItem
-                    on:click={() => {
-                        $hideAllGuessOne = false;
-                        setOcclusionFieldForDesktop();
-                    }}
+                    active={!$hideAllGuessOne}
+                    on:click={() => ($hideAllGuessOne = false)}
                 >
                     <span>{tr.notetypesHideOneGuessOne()}</span>
                 </DropdownItem>
