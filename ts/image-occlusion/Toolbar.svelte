@@ -7,6 +7,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import DropdownItem from "components/DropdownItem.svelte";
     import IconButton from "components/IconButton.svelte";
     import Popover from "components/Popover.svelte";
+    import Shortcut from "components/Shortcut.svelte";
     import WithFloating from "components/WithFloating.svelte";
 
     import { mdiEye, mdiFormatAlignCenter, mdiSquare, mdiViewDashboard } from "./icons";
@@ -137,13 +138,14 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                     : 'right-border-radius'}"
                 {iconSize}
                 on:click={tool.action}
-                tooltip={tool.tooltip()}
+                tooltip={tool.tooltip}
                 disabled={tool.name === "undo"
                     ? !$undoStack.undoable
                     : !$undoStack.redoable}
             >
                 {@html tool.icon}
             </IconButton>
+            <Shortcut keyCombination={tool.keyCombination} on:action={tool.action} />
         {/each}
     </div>
 
@@ -193,6 +195,12 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             >
                 {@html tool.icon}
             </IconButton>
+            {#if tool.keyCombination}
+                <Shortcut
+                    keyCombination={tool.keyCombination}
+                    on:action={() => tool.action(canvas)}
+                />
+            {/if}
         {/each}
     </div>
 

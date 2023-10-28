@@ -2,6 +2,7 @@
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import * as tr from "@tslib/ftl";
+import { getPlatformString } from "@tslib/shortcuts";
 import type fabric from "fabric";
 import { writable } from "svelte/store";
 
@@ -19,6 +20,8 @@ type UndoState = {
 };
 
 const shapeType = ["rect", "ellipse", "i-text"];
+const undoShortcut = "Control+Z";
+const redoShortcut = "Control+Y";
 
 const validShape = (shape: fabric.Object): boolean => {
     if (shape.width <= 5 || shape.height <= 5) {
@@ -132,12 +135,14 @@ export const undoRedoTools = [
         name: "undo",
         icon: mdiUndo,
         action: () => undoStack.undo(),
-        tooltip: tr.undoUndo,
+        tooltip: `${tr.undoUndo()} (${getPlatformString(undoShortcut)})`,
+        keyCombination: undoShortcut,
     },
     {
         name: "redo",
         icon: mdiRedo,
         action: () => undoStack.redo(),
-        tooltip: tr.undoRedo,
+        tooltip: `${tr.undoRedo()} (${getPlatformString(redoShortcut)})`,
+        keyCombination: redoShortcut,
     },
 ];

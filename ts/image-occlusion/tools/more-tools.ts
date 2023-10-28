@@ -2,6 +2,7 @@
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import * as tr from "@tslib/ftl";
+import { getPlatformString } from "@tslib/shortcuts";
 
 import {
     mdiAlignHorizontalCenter,
@@ -28,6 +29,8 @@ import {
     alignVerticalCenter,
 } from "./tool-aligns";
 
+const deleteShortcut = "Delete";
+
 export const groupUngroupTools = [
     {
         name: "group",
@@ -48,7 +51,8 @@ export const deleteDuplicateTools = [
         name: "delete",
         icon: mdiDeleteOutline,
         action: deleteItem,
-        tooltip: tr.editingImageOcclusionDelete,
+        tooltip: () => `${tr.editingImageOcclusionDelete()} (${getPlatformString(deleteShortcut)})`,
+        keyCombination: deleteShortcut,
     },
     {
         name: "duplicate",
