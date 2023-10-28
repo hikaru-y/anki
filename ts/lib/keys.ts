@@ -76,6 +76,10 @@ export function modifiersToPlatformString(modifiers: string[]): string {
 }
 
 export function keyToPlatformString(key: string): string {
+    if (!isApplePlatform()) {
+        return key;
+    }
+
     switch (key) {
         case "Backspace":
             return "⌫";
