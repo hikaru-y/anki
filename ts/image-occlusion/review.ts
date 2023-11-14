@@ -40,12 +40,14 @@ interface SetupImageOcclusionOptions {
     onDidDrawShapes?: DrawShapesCallback;
 }
 
+let onResize: (() => Promise<void>) | undefined;
+
+window.addEventListener("resize", () => onResize?.());
+
 async function setupImageOcclusion(setupOptions?: SetupImageOcclusionOptions): Promise<void> {
     await waitForImage();
-    window.addEventListener("load", () => {
-        window.addEventListener("resize", () => setupImageOcclusion(setupOptions));
-    });
-    window.requestAnimationFrame(() => setupImageOcclusionInner(setupOptions));
+    setupImageOcclusionInner(setupOptions);
+    onResize = () => setupImageOcclusion(setupOptions);
 }
 
 /** We must make sure the image has loaded before we can access its dimensions.
@@ -74,32 +76,51 @@ async function waitForImage(): Promise<void> {
     });
 }
 
+/**
+ * Calculate the size of the container that will fit in the viewport
+ * while having the same aspect ratio as the image.
+ */
+function calculateContainerSize(
+    imgWidth: number,
+    imgHeight: number,
+): { containerWidth: number; containerHeight: number } {
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
+    const ratio = Math.min(vw * 0.95 / imgWidth, (vh * 0.95 - 60) / imgHeight);
+
+    return {
+        containerWidth: imgWidth * ratio,
+        containerHeight: imgHeight * ratio,
+    };
+}
+
 function setupImageOcclusionInner(setupOptions?: SetupImageOcclusionOptions): void {
-    const canvas = document.querySelector(
-        "#image-occlusion-canvas",
-    ) as HTMLCanvasElement | null;
+    const canvas = document.querySelector<HTMLCanvasElement>("#image-occlusion-canvas");
     if (canvas == null) {
         return;
     }
 
-    const container = document.getElementById(
-        "image-occlusion-container",
-    ) as HTMLDivElement;
-    const image = document.querySelector(
-        "#image-occlusion-container img",
-    ) as HTMLImageElement;
+    const container = document.querySelector<HTMLDivElement>("#image-occlusion-container")!;
+    const image = document.querySelector<HTMLImageElement>("#image-occlusion-container img");
     if (image == null) {
         container.innerText = tr.notetypeErrorNoImageToShow();
         return;
     }
 
     // Enforce aspect ratio of image
-    container.style.aspectRatio = `${image.naturalWidth / image.naturalHeight}`;
+    // container.style.aspectRatio = `${image.naturalWidth / image.naturalHeight}`;
+    const { containerWidth, containerHeight } = calculateContainerSize(
+        image.naturalWidth,
+        image.naturalHeight,
+    );
+    container.style.width = `${containerWidth}px`;
+    container.style.height = `${containerHeight}px`;
 
     const size = optimumPixelSizeForCanvas(
         { width: image.naturalWidth, height: image.naturalHeight },
         { width: canvas.clientWidth, height: canvas.clientHeight },
     );
+
     canvas.width = size.width;
     canvas.height = size.height;
 
