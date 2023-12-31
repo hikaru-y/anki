@@ -111,7 +111,7 @@ class TopWebView(ToolbarWebView):
         self.eval(
             """document.body.classList.add("hidden"); """,
         )
-        if self.mw.fullscreen:
+        if self.mw.windowState() & Qt.WindowState.WindowFullScreen:
             self.mw.hide_menubar()
 
     def show(self) -> None:
