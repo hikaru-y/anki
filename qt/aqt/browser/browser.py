@@ -155,7 +155,6 @@ class Browser(QMainWindow):
         restoreState(self, self._editor_state_key)
 
         # responsive layout
-        self.aspect_ratio = self.width() / self.height() if self.height() != 0 else 0
         self.set_layout(self.mw.pm.browser_layout(), True)
         # disable undo/redo
         self.on_undo_state_change(mw.undo_actions_info())
@@ -200,49 +199,37 @@ class Browser(QMainWindow):
             self.sidebar.refresh_if_needed()
 
     def set_layout(self, mode: BrowserLayout, init: bool = False) -> None:
-        self.mw.pm.set_browser_layout(mode)
+        self.auto_layout = mode == BrowserLayout.AUTO
 
         if mode == BrowserLayout.AUTO:
-            self.auto_layout = True
-            self.maybe_update_layout(self.aspect_ratio, True)
+            self.update_layout()
             self.form.actionLayoutAuto.setChecked(True)
-            self.form.actionLayoutVertical.setChecked(False)
-            self.form.actionLayoutHorizontal.setChecked(False)
-            if not init:
-                tooltip(tr.qt_misc_layout_auto_enabled())
-        else:
-            self.auto_layout = False
-            self.form.actionLayoutAuto.setChecked(False)
+            tooltip_text = tr.qt_misc_layout_auto_enabled()
+        elif mode == BrowserLayout.VERTICAL:
+            self.form.splitter.setOrientation(Qt.Orientation.Vertical)
+            self.form.actionLayoutVertical.setChecked(True)
+            tooltip_text = tr.qt_misc_layout_vertical_enabled()
+        elif mode == BrowserLayout.HORIZONTAL:
+            self.form.splitter.setOrientation(Qt.Orientation.Horizontal)
+            self.form.actionLayoutHorizontal.setChecked(True)
+            tooltip_text = tr.qt_misc_layout_horizontal_enabled()
 
-            if mode == BrowserLayout.VERTICAL:
-                self.form.splitter.setOrientation(Qt.Orientation.Vertical)
-                self.form.actionLayoutVertical.setChecked(True)
-                self.form.actionLayoutHorizontal.setChecked(False)
-                if not init:
-                    tooltip(tr.qt_misc_layout_vertical_enabled())
+        if not init:
+            self.mw.pm.set_browser_layout(mode)
+            tooltip(tooltip_text)
 
-            elif mode == BrowserLayout.HORIZONTAL:
-                self.form.splitter.setOrientation(Qt.Orientation.Horizontal)
-                self.form.actionLayoutHorizontal.setChecked(True)
-                self.form.actionLayoutVertical.setChecked(False)
-                if not init:
-                    tooltip(tr.qt_misc_layout_horizontal_enabled())
-
-    def maybe_update_layout(self, aspect_ratio: float, force: bool = False) -> None:
-        if force or math.floor(aspect_ratio) != math.floor(self.aspect_ratio):
-            if aspect_ratio < 1:
-                self.form.splitter.setOrientation(Qt.Orientation.Vertical)
-            else:
-                self.form.splitter.setOrientation(Qt.Orientation.Horizontal)
+    def update_layout(self) -> None:
+        if self.height():
+            orientation = (
+                Qt.Orientation.Vertical
+                if self.height() > self.width()
+                else Qt.Orientation.Horizontal
+            )
+            self.form.splitter.setOrientation(orientation)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
-        if self.height() != 0:
-            aspect_ratio = self.width() / self.height()
-
-            if self.auto_layout:
-                self.maybe_update_layout(aspect_ratio)
-
-            self.aspect_ratio = aspect_ratio
+        if self.auto_layout:
+            self.update_layout()
 
         QMainWindow.resizeEvent(self, event)
 
@@ -286,6 +273,11 @@ class Browser(QMainWindow):
             self.form.actionLayoutHorizontal.triggered,
             lambda: self.set_layout(BrowserLayout.HORIZONTAL),
         )
+        # make the checkable actions mutually exclusive
+        self.layout_group = QActionGroup(self)
+        self.layout_group.addAction(self.form.actionLayoutAuto)
+        self.layout_group.addAction(self.form.actionLayoutVertical)
+        self.layout_group.addAction(self.form.actionLayoutHorizontal)
 
         # notes
         qconnect(f.actionAdd.triggered, self.mw.onAddCard)
