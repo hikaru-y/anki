@@ -1,144 +1,167 @@
 // Copyright: Ankitects Pty Ltd and contributors
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
-import "codemirror/lib/codemirror.css";
-import "codemirror/addon/fold/foldgutter.css";
-import "codemirror/theme/monokai.css";
-import "codemirror/mode/htmlmixed/htmlmixed";
-import "codemirror/mode/stex/stex";
-import "codemirror/addon/fold/foldcode";
-import "codemirror/addon/fold/foldgutter";
-import "codemirror/addon/fold/xml-fold";
-import "codemirror/addon/edit/matchtags";
-import "codemirror/addon/edit/closetag";
-import "codemirror/addon/display/placeholder";
+import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import type { EditorStateConfig, TransactionSpec } from "@codemirror/state";
+import { EditorState } from "@codemirror/state";
+import { oneDarkHighlightStyle } from "@codemirror/theme-one-dark";
+import { EditorView } from "@codemirror/view";
+import { promiseWithResolver } from "@tslib/promise";
 
-import CodeMirror from "codemirror";
-import type { Readable } from "svelte/store";
-
-import storeSubscribe from "../sveltelib/store-subscribe";
-
-export { CodeMirror };
-
-export const latex = {
-    name: "stex",
-    inMathMode: true,
-};
-
-export const htmlanki = {
-    name: "htmlmixed",
-    tags: {
-        "anki-mathjax": [[null, null, latex]],
+const baseTheme = EditorView.baseTheme({
+    "&": {
+        color: "var(--fg)",
+        backgroundColor: "var(--canvas-code)",
     },
-};
+    "&.cm-focused": {
+        outline: "none",
+    },
+    ".cm-content": {
+        padding: "8px 2px",
+    },
+    ".cm-gutters": {
+        backgroundColor: "var(--canvas-code)",
+        width: "12px",
+        borderRight: "1px solid var(--fg-faint)",
+    },
+    "&.mathjax-editor": {
+        marginBottom: "0.5rem",
+        maxWidth: "100ch",
+        minWidth: "30ch",
+        borderWidth: "1px 0",
+        borderStyle: "solid",
+        borderColor: "var(--border-subtle)",
+    },
+    "&dark.mathjax-editor": {
+        borderColor: "var(--fg-subtle)",
+    },
+    "&.mathjax-editor .cm-placeholder": {
+        fontFamily: "sans-serif",
+        fontSize: "small",
+        verticalAlign: "middle",
+    },
+});
 
-export const lightTheme = "default";
-export const darkTheme = "monokai";
+export const lightTheme = [
+    baseTheme,
+    syntaxHighlighting(defaultHighlightStyle),
+];
 
-export const baseOptions: CodeMirror.EditorConfiguration = {
-    theme: lightTheme,
-    lineWrapping: true,
-    matchTags: { bothTags: true },
-    extraKeys: { Tab: false, "Shift-Tab": false },
-    tabindex: 0,
-    viewportMargin: Infinity,
-    lineWiseCopyCut: false,
-};
+export const darkTheme = [
+    EditorView.darkTheme.of(true),
+    baseTheme,
+    syntaxHighlighting(oneDarkHighlightStyle),
+];
 
-export const gutterOptions: CodeMirror.EditorConfiguration = {
-    gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-    lineNumbers: true,
-    foldGutter: true,
-};
+export class CodeMirrorManager {
+    #view: Promise<EditorView> | undefined = undefined;
+    #config: EditorStateConfig;
+    container: {
+        promise: Promise<HTMLDivElement>;
+        resolve: (value: HTMLDivElement) => void;
+    };
 
-export function focusAndSetCaret(
-    editor: CodeMirror.Editor,
-    position: CodeMirror.Position = { line: editor.lineCount(), ch: 0 },
-): void {
-    editor.focus();
-    editor.setCursor(position);
-}
+    constructor(config: EditorStateConfig) {
+        this.#config = config;
+        const [promise, resolve] = promiseWithResolver<HTMLDivElement>();
+        this.container = { promise, resolve };
+    }
 
-interface OpenCodeMirrorOptions {
-    configuration: CodeMirror.EditorConfiguration;
-    resolve(editor: CodeMirror.EditorFromTextArea): void;
-    hidden: boolean;
-}
+    async #createView(): Promise<EditorView> {
+        const parent = await this.container.promise;
+        return new Promise((resolve) => {
+            const view = new EditorView({
+                state: EditorState.create(this.#config),
+                parent,
+            });
+            resolve(view);
+        });
+    }
 
-export function openCodeMirror(
-    textarea: HTMLTextAreaElement,
-    options: Partial<OpenCodeMirrorOptions>,
-): { update: (options: Partial<OpenCodeMirrorOptions>) => void; destroy: () => void } {
-    let editor: CodeMirror.EditorFromTextArea | null = null;
+    #requireView(): Promise<EditorView> {
+        if (!this.#view) {
+            this.#view = this.#createView();
+        }
+        return this.#view;
+    }
 
-    function update({
-        configuration,
-        resolve,
-        hidden,
-    }: Partial<OpenCodeMirrorOptions>): void {
-        if (editor) {
-            for (const key in configuration) {
-                editor.setOption(
-                    key as keyof CodeMirror.EditorConfiguration,
-                    configuration[key],
-                );
-            }
-        } else if (!hidden) {
-            editor = CodeMirror.fromTextArea(textarea, configuration);
-            resolve?.(editor);
+    async focus(): Promise<void> {
+        const view = await this.#requireView();
+        // https://discuss.codemirror.net/t/how-to-autofocus-in-cm6/2966
+        while (!view.hasFocus) {
+            view.focus();
+            await new Promise(requestAnimationFrame);
         }
     }
 
-    update(options);
+    async blur(): Promise<void> {
+        const view = await this.#requireView();
+        // https://discuss.codemirror.net/t/code-mirror-6-has-focus-what-about-blur/4071
+        view.contentDOM.blur();
+    }
 
-    return {
-        update,
-        destroy(): void {
-            editor?.toTextArea();
-            editor = null;
-        },
-    };
-}
+    async setValue(value: string): Promise<void> {
+        const view = await this.#requireView();
+        view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: value },
+        });
+    }
 
-/**
- * Sets up the contract with the code store and location restoration.
- */
-export function setupCodeMirror(
-    editor: CodeMirror.Editor,
-    code: Readable<string>,
-): void {
-    const { subscribe, unsubscribe } = storeSubscribe(
-        code,
-        (value: string): void => editor.setValue(value),
-        false,
-    );
+    async setCaretPosition(position?: number): Promise<void> {
+        const view = await this.#requireView();
+        await this.focus();
+        view.dispatch({
+            selection: {
+                anchor: position ?? 0,
+                head: position ?? 0,
+            },
+        });
+    }
 
-    // TODO passing in the tabindex option does not do anything: bug?
-    editor.getInputField().tabIndex = 0;
+    async moveCaretToEnd(): Promise<void> {
+        const view = await this.#requireView();
+        this.setCaretPosition(view.state.doc.length);
+    }
 
-    let ranges: CodeMirror.Range[] | null = null;
+    async selectAll(): Promise<void> {
+        const view = await this.#requireView();
+        await this.focus();
+        view.dispatch({
+            selection: {
+                anchor: 0,
+                head: view.state.doc.length,
+            },
+        });
+    }
 
-    editor.on("focus", () => {
-        if (ranges) {
-            try {
-                editor.setSelections(ranges);
-            } catch {
-                ranges = null;
-                editor.setCursor(editor.lineCount(), 0);
-            }
+    async getSelection(): Promise<string> {
+        const view = await this.#requireView();
+        return view.state.sliceDoc(
+            view.state.selection.main.from,
+            view.state.selection.main.to,
+        );
+    }
+
+    async replaceSelection(text: string): Promise<void> {
+        const view = await this.#requireView();
+        view.dispatch(view.state.replaceSelection(text));
+    }
+
+    async maybeContentDOM(): Promise<HTMLElement | null> {
+        return this.#view
+            ? (await this.#view).contentDOM
+            : null;
+    }
+
+    async maybeDispatch(specs: TransactionSpec): Promise<void> {
+        if (this.#view) {
+            (await this.#view).dispatch(specs);
         }
-        unsubscribe();
-    });
+    }
 
-    editor.on("mousedown", () => {
-        // Prevent focus restoring location
-        ranges = null;
-    });
-
-    editor.on("blur", () => {
-        ranges = editor.listSelections();
-        subscribe();
-    });
-
-    subscribe();
+    async cleanup(): Promise<void> {
+        if (this.#view) {
+            (await this.#view).destroy();
+        }
+    }
 }

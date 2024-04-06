@@ -14,135 +14,117 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <script lang="ts">
+    import { standardKeymap } from "@codemirror/commands";
+    import { StreamLanguage } from "@codemirror/language";
+    import { stex } from "@codemirror/legacy-modes/mode/stex";
+    import type { EditorView, KeyBinding } from "@codemirror/view";
     import * as tr from "@tslib/ftl";
-    import { noop } from "@tslib/functional";
-    import { isArrowLeft, isArrowRight } from "@tslib/keys";
+    import { promiseWithResolver } from "@tslib/promise";
     import { getPlatformString } from "@tslib/shortcuts";
-    import type CodeMirrorLib from "codemirror";
+    import type { CodeMirrorManager } from "editor/code-mirror";
     import { createEventDispatcher, onMount } from "svelte";
     import type { Writable } from "svelte/store";
 
     import { pageTheme } from "../../sveltelib/theme";
-    import { baseOptions, focusAndSetCaret, latex } from "../code-mirror";
-    import type { CodeMirrorAPI } from "../CodeMirror.svelte";
     import CodeMirror from "../CodeMirror.svelte";
 
     export let code: Writable<string>;
     export let acceptShortcut: string;
     export let newlineShortcut: string;
 
-    const configuration = {
-        ...Object.assign({}, baseOptions, {
-            extraKeys: {
-                ...(baseOptions.extraKeys as CodeMirrorLib.KeyMap),
-                [acceptShortcut]: noop,
-                [newlineShortcut]: noop,
-            },
-        }),
-        placeholder: tr.editingMathjaxPlaceholder({
-            accept: getPlatformString(acceptShortcut),
-            newline: getPlatformString(newlineShortcut),
-        }),
-        mode: latex,
-    };
-
     /* These are not reactive, but only operate on initialization */
-    export let position: CodeMirrorLib.Position | undefined = undefined;
+    export let position: number | undefined = undefined;
     export let selectAll: boolean;
 
-    const dispatch = createEventDispatcher();
+    let codeMirror: CodeMirrorManager | undefined;
 
-    let codeMirror = {} as CodeMirrorAPI;
-
-    onMount(async () => {
-        const editor = await codeMirror.editor;
-
-        let direction: "start" | "end" | undefined = undefined;
-
-        editor.on(
-            "keydown",
-            (_instance: CodeMirrorLib.Editor, event: KeyboardEvent): void => {
-                if (event.key === "Escape") {
-                    dispatch("close");
-                    event.stopPropagation();
-                } else if (isArrowLeft(event)) {
-                    direction = "start";
-                } else if (isArrowRight(event)) {
-                    direction = "end";
-                }
-            },
-        );
-
-        editor.on(
-            "beforeSelectionChange",
-            (
-                instance: CodeMirrorLib.Editor,
-                obj: CodeMirrorLib.EditorSelectionChange,
-            ): void => {
-                const { anchor } = obj.ranges[0];
-
-                if (anchor["hitSide"]) {
-                    if (instance.getValue().length === 0) {
-                        if (direction) {
-                            dispatch(`moveout${direction}`);
-                        }
-                    } else if (anchor.line === 0 && anchor.ch === 0) {
-                        dispatch("moveoutstart");
-                    } else {
-                        dispatch("moveoutend");
-                    }
-                }
-
-                direction = undefined;
-            },
-        );
-
-        setTimeout(() => {
-            focusAndSetCaret(editor, position);
-
-            if (selectAll) {
-                editor.execCommand("selectAll");
-            }
-        });
-    });
+    const dispatch = createEventDispatcher<{
+        close: void;
+        moveoutstart: void;
+        moveoutend: void;
+    }>();
 
     $: $closeSignalStore, dispatch("close");
+
+    function arrowLeftCommand(view: EditorView): boolean {
+        if (
+            view.state.selection.main.anchor === 0 &&
+            view.state.selection.main.anchor === view.state.selection.main.head
+        ) {
+            dispatch("moveoutstart");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function arrowRightCommand(view: EditorView): boolean {
+        if (
+            view.state.selection.main.anchor === view.state.doc.length &&
+            view.state.selection.main.anchor === view.state.selection.main.head
+        ) {
+            dispatch("moveoutend");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    const keyBindings: KeyBinding[] = [
+        {
+            key: "Enter",
+            run: () => {
+                dispatch("moveoutend");
+                return true;
+            },
+        },
+        {
+            key: "ArrowLeft",
+            run: arrowLeftCommand,
+        },
+        {
+            key: "ArrowRight",
+            run: arrowRightCommand,
+        },
+        {
+            mac: "Cmd-b",
+            run: arrowLeftCommand,
+        },
+        {
+            mac: "Cmd-f",
+            run: arrowRightCommand,
+        },
+        ...standardKeymap,
+    ];
+    const langExtension = StreamLanguage.define(stex);
+    const placeholderText = tr.editingMathjaxPlaceholder({
+        accept: getPlatformString(acceptShortcut),
+        newline: getPlatformString(newlineShortcut),
+    });
+
+    onMount(() => {
+        console.log(position);
+        if (position) {
+            codeMirror?.setCaretPosition(position);
+        } else if (selectAll) {
+            codeMirror?.selectAll();
+        } else {
+            codeMirror?.focus();
+        }
+    });
 </script>
 
 <div class="mathjax-editor" class:light-theme={!$pageTheme.isDark}>
     <CodeMirror
         {code}
-        {configuration}
-        bind:api={codeMirror}
+        {langExtension}
+        {keyBindings}
+        {placeholderText}
+        editorAttrs={{ class: "mathjax-editor" }}
+        bind:codeMirror
         on:change={({ detail: mathjaxText }) => code.set(mathjaxText)}
         on:blur
     />
 </div>
 
-<slot editor={codeMirror} />
-
-<style lang="scss">
-    .mathjax-editor {
-        margin: 0 1px;
-        overflow: hidden;
-
-        :global(.CodeMirror) {
-            max-width: 100ch;
-            min-width: 14rem;
-            margin-bottom: 0.25rem;
-        }
-
-        &.light-theme :global(.CodeMirror) {
-            border-width: 1px 0;
-            border-style: solid;
-            border-color: var(--border);
-        }
-
-        :global(.CodeMirror-placeholder) {
-            font-family: sans-serif;
-            font-size: 55%;
-            text-align: center;
-            color: var(--fg-subtle);
-        }
-    }
-</style>
+<slot {codeMirror} />

@@ -1,108 +1,88 @@
 <!--
-Copyright: Ankitects Pty Ltd and contributors
+    Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
-<script context="module" lang="ts">
-    import type CodeMirrorLib from "codemirror";
-
-    export interface CodeMirrorAPI {
-        readonly editor: Promise<CodeMirrorLib.Editor>;
-        setOption<T extends keyof CodeMirrorLib.EditorConfiguration>(
-            key: T,
-            value: CodeMirrorLib.EditorConfiguration[T],
-        ): Promise<void>;
-    }
-</script>
-
 <script lang="ts">
-    import { directionKey } from "@tslib/context-keys";
-    import { promiseWithResolver } from "@tslib/promise";
-    import { createEventDispatcher, getContext, onMount } from "svelte";
+    import { history, historyKeymap } from "@codemirror/commands";
+    import type { Extension } from "@codemirror/state";
+    import { Compartment } from "@codemirror/state";
+    import type { KeyBinding } from "@codemirror/view";
+    import { EditorView, gutter, keymap, placeholder } from "@codemirror/view";
+    import { createEventDispatcher, onDestroy } from "svelte";
     import type { Writable } from "svelte/store";
 
     import { pageTheme } from "../sveltelib/theme";
-    import { darkTheme, lightTheme, openCodeMirror } from "./code-mirror";
+    import { CodeMirrorManager, darkTheme, lightTheme } from "./code-mirror";
 
-    export let configuration: CodeMirrorLib.EditorConfiguration;
     export let code: Writable<string>;
-    export let hidden = false;
+    export let langExtension: Extension;
+    export let keyBindings: KeyBinding[];
+    export let withGutter = false;
+    export let domListener = false;
+    export let placeholderText: string | undefined = undefined;
+    export let editorAttrs:
+        | Parameters<typeof EditorView.editorAttributes.of>[0]
+        | undefined = undefined;
 
-    const defaultConfiguration = {
-        rtlMoveVisually: true,
-        lineNumbers: false,
-    };
+    const dispatch = createEventDispatcher<{
+        change: string;
+        focusin: void;
+        focusout: void;
+    }>();
 
-    const [editorPromise, resolve] = promiseWithResolver<CodeMirrorLib.Editor>();
+    const themeCompartment = new Compartment();
 
-    /**
-     * Convenience function for editor.setOption.
-     */
-    async function setOption<T extends keyof CodeMirrorLib.EditorConfiguration>(
-        key: T,
-        value: CodeMirrorLib.EditorConfiguration[T],
-    ): Promise<void> {
-        const editor = await editorPromise;
-        editor.setOption(key, value);
+    function switchThemes(dark: boolean): void {
+        codeMirror.maybeDispatch({
+            effects: themeCompartment.reconfigure(dark ? darkTheme : lightTheme),
+        });
     }
 
-    const direction = getContext<Writable<"ltr" | "rtl">>(directionKey);
+    $: switchThemes($pageTheme.isDark);
 
-    let apiPartial: Partial<CodeMirrorAPI>;
-    export { apiPartial as api };
-
-    Object.assign(apiPartial, {
-        editor: editorPromise,
-        setOption,
+    const updateListenerExtension = EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+            dispatch("change", update.state.doc.toString());
+        }
     });
 
-    const dispatch = createEventDispatcher();
+    function extensions(): Extension[] {
+        const exts = [
+            langExtension,
+            keymap.of([...keyBindings, ...historyKeymap]),
+            updateListenerExtension,
+            EditorView.lineWrapping,
+            themeCompartment.of($pageTheme.isDark ? darkTheme : lightTheme),
+            history(),
+        ];
 
-    onMount(async () => {
-        const editor = await editorPromise;
-        editor.getInputField().tabIndex = 0;
-        editor.setValue($code);
-        editor.on("change", () => dispatch("change", editor.getValue()));
-        editor.on("focus", (codeMirror, event) =>
-            dispatch("focus", { codeMirror, event }),
-        );
-        editor.on("blur", (codeMirror, event) =>
-            dispatch("blur", { codeMirror, event }),
-        );
-        editor.on("keydown", (codeMirror, event) => {
-            if (event.code === "Tab") {
-                dispatch("tab", { codeMirror, event });
-            }
-        });
+        if (withGutter) {
+            exts.push(gutter({}));
+        }
+        if (domListener) {
+            exts.push(
+                EditorView.domEventHandlers({
+                    focusin: () => dispatch("focusin"),
+                    focusout: () => dispatch("focusout"),
+                }),
+            );
+        }
+        if (placeholderText) {
+            exts.push(placeholder(placeholderText));
+        }
+        if (editorAttrs) {
+            exts.push(EditorView.editorAttributes.of(editorAttrs));
+        }
+
+        return exts;
+    }
+
+    export const codeMirror = new CodeMirrorManager({
+        doc: $code,
+        extensions: extensions(),
     });
+
+    onDestroy(() => codeMirror.cleanup());
 </script>
 
-<div class="code-mirror">
-    <textarea
-        tabindex="-1"
-        hidden
-        use:openCodeMirror={{
-            configuration: {
-                ...configuration,
-                ...defaultConfiguration,
-                direction: $direction,
-                theme: $pageTheme.isDark ? darkTheme : lightTheme,
-            },
-            resolve,
-            hidden,
-        }}
-    />
-</div>
-
-<style lang="scss">
-    .code-mirror {
-        height: 100%;
-
-        :global(.CodeMirror) {
-            height: auto;
-        }
-
-        :global(.CodeMirror-wrap pre) {
-            word-break: break-word;
-        }
-    }
-</style>
+<div class="code-mirror" use:codeMirror.container.resolve />

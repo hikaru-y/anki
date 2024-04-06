@@ -14,8 +14,10 @@ function adjustInputHTML(html: string): string {
 }
 
 export function adjustInputFragment(fragment: DocumentFragment): void {
+    console.log("nodeContainsInlineContent(fragment)", nodeContainsInlineContent(fragment));
     if (nodeContainsInlineContent(fragment)) {
-        fragment.appendChild(document.createElement("br"));
+        const br = fragment.appendChild(document.createElement("br"));
+        br.classList.add("anki");
     }
 }
 
@@ -30,6 +32,9 @@ export function storedToFragment(storedHTML: string): DocumentFragment {
 }
 
 function adjustOutputFragment(fragment: DocumentFragment): void {
+    // if (fragment.lastChild instanceof HTMLBRElement) {
+    //     fragment.lastChild.remove();
+    // }
     if (
         fragment.hasChildNodes()
         && nodeIsElement(fragment.lastChild!)

@@ -225,7 +225,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                             resetHandle();
                         }}
                         on:close={resetHandle}
-                        let:editor={mathjaxEditor}
+                        let:codeMirror
                     >
                         <Shortcut
                             keyCombination={acceptShortcut}
@@ -251,11 +251,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                             }}
                             on:delete={deleteMathjaxElement}
                             on:surround={async ({ detail }) => {
-                                const editor = await mathjaxEditor.editor;
                                 const { prefix, suffix } = detail;
 
-                                editor.replaceSelection(
-                                    prefix + editor.getSelection() + suffix,
+                                codeMirror?.replaceSelection(
+                                    prefix + codeMirror?.getSelection() + suffix,
                                 );
                             }}
                         />

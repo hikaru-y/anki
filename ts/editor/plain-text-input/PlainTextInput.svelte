@@ -6,14 +6,12 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { registerPackage } from "@tslib/runtime-require";
 
     import lifecycleHooks from "../../sveltelib/lifecycle-hooks";
-    import type { CodeMirrorAPI } from "../CodeMirror.svelte";
     import type { EditingInputAPI, FocusableInputAPI } from "../EditingArea.svelte";
 
     export interface PlainTextInputAPI extends EditingInputAPI {
         name: "plain-text";
         moveCaretToEnd(): void;
         toggle(): boolean;
-        codeMirror: CodeMirrorAPI;
     }
 
     export const parsingInstructions: string[] = [];
@@ -29,11 +27,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 </script>
 
 <script lang="ts">
+    import { standardKeymap } from "@codemirror/commands";
+    import { html } from "@codemirror/lang-html";
+    import { Compartment } from "@codemirror/state";
+    import { promiseWithResolver } from "@tslib/promise";
+    import type { CodeMirrorManager } from "editor/code-mirror";
     import { onMount, tick } from "svelte";
     import { writable } from "svelte/store";
 
     import { pageTheme } from "../../sveltelib/theme";
-    import { baseOptions, gutterOptions, htmlanki } from "../code-mirror";
     import CodeMirror from "../CodeMirror.svelte";
     import { context as editingAreaContext } from "../EditingArea.svelte";
     import { Flag } from "../helpers";
@@ -44,35 +46,23 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export let fieldCollapsed = false;
     export const focusFlag = new Flag();
 
-    $: configuration = {
-        mode: htmlanki,
-        ...baseOptions,
-        ...gutterOptions,
-        ...{ autoCloseTags: $closeHTMLTags },
-    };
-
     const { focusedInput } = noteEditorContext.get();
     const { editingInputs, fieldStore } = editingAreaContext.get();
     const code = writable($fieldStore.content);
 
-    let codeMirror = {} as CodeMirrorAPI;
     let focused = false;
+    let codeMirror: CodeMirrorManager | undefined = undefined;
 
     async function focus(): Promise<void> {
-        const editor = await codeMirror.editor;
-        editor.focus();
+        codeMirror?.focus();
     }
 
     async function moveCaretToEnd(): Promise<void> {
-        const editor = await codeMirror.editor;
-        editor.setCursor(editor.lineCount(), 0);
+        codeMirror?.moveCaretToEnd();
     }
 
     async function refocus(): Promise<void> {
-        const editor = (await codeMirror.editor) as any;
-        editor.display.input.blur();
-
-        focus();
+        codeMirror?.blur();
         moveCaretToEnd();
     }
 
@@ -82,13 +72,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     async function getInputAPI(target: EventTarget): Promise<FocusableInputAPI | null> {
-        const editor = (await codeMirror.editor) as any;
-
-        if (target === editor.display.input.textarea) {
+        if (target === (await codeMirror?.maybeContentDOM())) {
             return api;
+        } else {
+            return null;
         }
-
-        return null;
     }
 
     export const api: PlainTextInputAPI = {
@@ -99,7 +87,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         refocus,
         toggle,
         getInputAPI,
-        codeMirror,
     };
 
     /**
@@ -110,37 +97,55 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         $editingInputs = $editingInputs;
     }
 
-    async function refresh(): Promise<void> {
-        const editor = await codeMirror.editor;
-        editor.refresh();
-    }
-
     $: {
         pushUpdate(!(hidden || fieldCollapsed));
-        tick().then(() => {
-            refresh();
-            if (focusFlag.checkAndReset()) {
-                refocus();
-            }
-        });
+        if (focusFlag.checkAndReset()) {
+            tick().then(refocus);
+        }
     }
 
     function onChange({ detail: html }: CustomEvent<string>): void {
+        // code.set(removeProhibitedTags(html));
         if (focused) {
             fieldStore.set({ content: removeProhibitedTags(html) });
         }
     }
 
+    const keyBindings = [...standardKeymap];
+    const langCompartment = new Compartment();
+    const restParams: Parameters<typeof html>[0] = { matchClosingTags: true };
+    const langExtension = langCompartment.of(
+        html({ autoCloseTags: $closeHTMLTags, ...restParams }),
+    );
+    function reconfigure(autoCloseTags: boolean): void {
+        codeMirror?.maybeDispatch({
+            effects: langCompartment.reconfigure(
+                html({ autoCloseTags, ...restParams }),
+            ),
+        });
+    }
+
+    // Reconfigure when 'Auto-close HTML tags' option is toggled
+    $: reconfigure($closeHTMLTags);
+
     onMount(() => {
         $editingInputs.push(api);
         $editingInputs = $editingInputs;
 
-        return fieldStore.subscribe(({ content, noteLoaded }) => {
-            if (noteLoaded || !focused) {
-                codeMirror.editor.then((cm) => cm.setValue(content));
+        return fieldStore.subscribe(async ({ content, noteLoaded }) => {
+            if (!hidden && (noteLoaded || !focused)) {
+                codeMirror?.setValue(content);
             }
         });
     });
+
+    function updateCodeMirrorValue(): void {
+        codeMirror?.setValue($fieldStore.content);
+    }
+
+    $: if (!hidden) {
+        updateCodeMirrorValue();
+    }
 
     setupLifecycleHooks(api);
 </script>
@@ -152,13 +157,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     {hidden}
 >
     <CodeMirror
-        {configuration}
         {code}
-        {hidden}
-        bind:api={codeMirror}
+        {langExtension}
+        {keyBindings}
+        withGutter
+        domListener
+        bind:codeMirror
         on:change={onChange}
-        on:focus={() => (focused = true)}
-        on:blur={() => (focused = false)}
+        on:focusin={() => (focused = true)}
+        on:focusout={() => (focused = false)}
     />
 </div>
 
