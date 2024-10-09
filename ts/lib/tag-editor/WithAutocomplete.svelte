@@ -77,8 +77,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
      */
     async function chooseSelected() {
         active = true;
-        dispatch("choose", { chosen: suggestionsItems[selected ?? -1] });
-
+        if (suggestionsItems.length) {
+            dispatch("choose", { chosen: suggestionsItems[selected ?? -1] });
+        }
         await tick();
         show.set(false);
     }
@@ -129,7 +130,6 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     keepOnKeyup
     show={$show}
     preferredPlacement="top"
-    portalTarget={document.body}
     let:asReference
     on:close={() => show.set(false)}
 >
