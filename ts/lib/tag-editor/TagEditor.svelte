@@ -433,67 +433,69 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                 }}
             />
 
-            {#if index === active}
-                <WithAutocomplete
-                    {suggestionsPromise}
-                    {show}
-                    on:update={updateSuggestions}
-                    on:select={({ detail }) => onAutocomplete(detail.selected)}
-                    on:choose={({ detail }) => {
-                        onAutocomplete(detail.chosen);
-                        splitTag(index, detail.chosen.length, detail.chosen.length);
-                    }}
-                    let:createAutocomplete
-                >
-                    <TagInput
-                        id={tag.id}
-                        class="position-absolute start-0 top-0 bottom-0 ps-2 py-0"
-                        disabled={autocompleteDisabled}
-                        bind:name={activeName}
-                        bind:input={activeInput}
-                        on:focus={() => {
-                            dispatch("tagsFocused");
-                            activeName = tag.name;
-                            autocomplete = createAutocomplete();
+            {#key active}
+                {#if index === active}
+                    <WithAutocomplete
+                        {suggestionsPromise}
+                        {show}
+                        on:update={updateSuggestions}
+                        on:select={({ detail }) => onAutocomplete(detail.selected)}
+                        on:choose={({ detail }) => {
+                            onAutocomplete(detail.chosen);
+                            splitTag(index, detail.chosen.length, detail.chosen.length);
                         }}
-                        on:keydown={onKeydown}
-                        on:keyup={() => {
-                            if (activeName.length === 0) {
-                                show?.set(false);
-                            }
-                        }}
-                        on:taginput={() => updateTagName(tag)}
-                        on:tagsplit={({ detail }) =>
-                            splitTag(index, detail.start, detail.end)}
-                        on:tagadd={() => insertTagKeepFocus(index)}
-                        on:tagdelete={() => deleteTagAt(index)}
-                        on:tagselectall={async () => {
-                            if (tagTypes.length <= 1) {
-                                // Noop if no other tags exist
-                                return;
-                            }
+                        let:createAutocomplete
+                    >
+                        <TagInput
+                            id={tag.id}
+                            class="position-absolute start-0 top-0 bottom-0 ps-2 py-0"
+                            disabled={autocompleteDisabled}
+                            bind:name={activeName}
+                            bind:input={activeInput}
+                            on:focus={() => {
+                                dispatch("tagsFocused");
+                                activeName = tag.name;
+                                autocomplete = createAutocomplete();
+                            }}
+                            on:keydown={onKeydown}
+                            on:keyup={() => {
+                                if (activeName.length === 0) {
+                                    show?.set(false);
+                                }
+                            }}
+                            on:taginput={() => updateTagName(tag)}
+                            on:tagsplit={({ detail }) =>
+                                splitTag(index, detail.start, detail.end)}
+                            on:tagadd={() => insertTagKeepFocus(index)}
+                            on:tagdelete={() => deleteTagAt(index)}
+                            on:tagselectall={async () => {
+                                if (tagTypes.length <= 1) {
+                                    // Noop if no other tags exist
+                                    return;
+                                }
 
-                            activeInput.blur();
-                            // Ensure blur events are processed first
-                            await tick();
+                                activeInput.blur();
+                                // Ensure blur events are processed first
+                                await tick();
 
-                            selectAllTags();
-                        }}
-                        on:tagjoinprevious={() => joinWithPreviousTag(index)}
-                        on:tagjoinnext={() => joinWithNextTag(index)}
-                        on:tagmoveprevious={() => moveToPreviousTag(index)}
-                        on:tagmovenext={() => moveToNextTag(index)}
-                        on:tagaccept={() => {
-                            deleteTagIfNotUnique(tag, index);
-                            if (tag) {
-                                updateTagName(tag);
-                            }
-                            saveTags();
-                            decideNextActive();
-                        }}
-                    />
-                </WithAutocomplete>
-            {/if}
+                                selectAllTags();
+                            }}
+                            on:tagjoinprevious={() => joinWithPreviousTag(index)}
+                            on:tagjoinnext={() => joinWithNextTag(index)}
+                            on:tagmoveprevious={() => moveToPreviousTag(index)}
+                            on:tagmovenext={() => moveToNextTag(index)}
+                            on:tagaccept={() => {
+                                deleteTagIfNotUnique(tag, index);
+                                if (tag) {
+                                    updateTagName(tag);
+                                }
+                                saveTags();
+                                decideNextActive();
+                            }}
+                        />
+                    </WithAutocomplete>
+                {/if}
+            {/key}
         </div>
     {/each}
 
