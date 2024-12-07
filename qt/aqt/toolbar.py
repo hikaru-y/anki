@@ -246,9 +246,14 @@ class BottomWebView(ToolbarWebView):
 
         self.hidden = False
         if self.mw.state == "review":
-            self.evalWithCallback(
-                "document.documentElement.offsetHeight", self.animate_height
-            )
+            js = """
+            {
+                const height = document.documentElement.offsetHeight;
+                document.body.classList.add("height-measured");
+                height;
+            }
+            """
+            self.evalWithCallback(js, self.animate_height)
         else:
             self.adjustHeightToFit()
 
