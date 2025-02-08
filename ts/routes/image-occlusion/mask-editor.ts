@@ -12,7 +12,7 @@ import { hideAllGuessOne, notesDataStore, saveNeededStore, tagsWritable, textEdi
 import Toast from "./Toast.svelte";
 import { addShapesToCanvasFromCloze } from "./tools/add-from-cloze";
 import { enableSelectable, makeShapesRemainInCanvas, moveShapeToCanvasBoundaries } from "./tools/lib";
-import { modifiedPolygon } from "./tools/tool-polygon";
+import { modifiedPolygon } from "./tools/tool-polygon.svelte";
 import { undoStack } from "./tools/tool-undo-redo";
 import { enablePinchZoom, onResize, setCanvasSize } from "./tools/tool-zoom";
 import type { Size } from "./types";

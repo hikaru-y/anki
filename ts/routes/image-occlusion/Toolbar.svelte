@@ -44,7 +44,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { toggleTranslucentKeyCombination } from "./tools/shortcuts";
     import { tools } from "./tools/tool-buttons";
     import { drawCursor } from "./tools/tool-cursor";
-    import { removeUnfinishedPolygon } from "./tools/tool-polygon";
+    import { removeUnfinishedPolygon } from "./tools/tool-polygon.svelte";
     import { undoRedoTools, undoStack } from "./tools/tool-undo-redo";
     import {
         disablePan,

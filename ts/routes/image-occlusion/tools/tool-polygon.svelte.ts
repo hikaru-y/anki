@@ -10,10 +10,12 @@ import { undoStack } from "./tool-undo-redo";
 import { onPinchZoom } from "./tool-zoom";
 
 let activeLine;
-let activeShape;
+let activeShape = $state<fabric.Polygon | null>(null);
 let linesList: fabric.Line[] = [];
 let pointsList: fabric.Circle[] = [];
 let drawMode = false;
+
+$effect(() => console.log(activeShape));
 
 export const drawPolygon = (canvas: fabric.Canvas): void => {
     // remove selectable for shapes
@@ -36,6 +38,9 @@ export const drawPolygon = (canvas: fabric.Canvas): void => {
     });
 
     canvas.on("mouse:move", function(options) {
+        if (!activeShape) {
+            return;
+        }
         // if pinch zoom is active, remove all points and lines
         if (onPinchZoom(options)) {
             removeUnfinishedPolygon(canvas);
@@ -49,11 +54,12 @@ export const drawPolygon = (canvas: fabric.Canvas): void => {
                 y2: pointer.y,
             });
 
-            const points = activeShape.get("points");
-            points[pointsList.length] = {
-                x: pointer.x,
-                y: pointer.y,
-            };
+            const points = activeShape.get("points")!;
+            points[pointsList.length] = new fabric.Point(pointer.x, pointer.y);
+            // {
+            //     x: pointer.x,
+            //     y: pointer.y,
+            // };
 
             activeShape.set({ points });
         }
@@ -125,10 +131,14 @@ const addPoint = (canvas: fabric.Canvas, options): void => {
     if (activeShape) {
         const pointer = canvas.getPointer(options.e);
         const points = activeShape.get("points");
-        points.push({
-            x: pointer.x,
-            y: pointer.y,
-        });
+        if (!points) {
+            return;
+        }
+        points.push(new fabric.Point(pointer.x, pointer.y));
+        //     {
+        //     x: pointer.x,
+        //     y: pointer.y,
+        // });
 
         const polygon = new fabric.Polygon(points, {
             stroke: "#333333",
@@ -174,6 +184,9 @@ const addPoint = (canvas: fabric.Canvas, options): void => {
 };
 
 const generatePolygon = (canvas: fabric.Canvas, pointsList): void => {
+    if (!activeShape) {
+        return;
+    }
     const points: { x: number; y: number }[] = [];
     pointsList.forEach((point) => {
         points.push({

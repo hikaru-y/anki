@@ -9,11 +9,17 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { daysToRevlogRange, RevlogRange } from "./graph-helpers";
     import InputBox from "./InputBox.svelte";
 
-    enum SearchRange {
-        Deck = 1,
-        Collection = 2,
-        Custom = 3,
-    }
+    // enum SearchRange {
+    //     Deck = 1,
+    //     Collection = 2,
+    //     Custom = 3,
+    // }
+    const SearchRange = {
+        Deck: 1,
+        Collection: 2,
+        Custom: 3,
+    } as const;
+    type SearchRange = (typeof SearchRange)[keyof typeof SearchRange];
 
     export let loading: boolean;
 

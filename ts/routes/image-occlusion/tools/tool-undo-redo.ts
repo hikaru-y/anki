@@ -9,7 +9,7 @@ import { mdiRedo, mdiUndo } from "$lib/components/icons";
 
 import { saveNeededStore } from "../store";
 import { redoKeyCombination, undoKeyCombination } from "./shortcuts";
-import { removeUnfinishedPolygon } from "./tool-polygon";
+import { removeUnfinishedPolygon } from "./tool-polygon.svelte";
 
 /**
  * Undo redo for rectangle and ellipse handled here,

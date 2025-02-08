@@ -7,7 +7,7 @@ import { argv, env } from "process";
 const [_node, _script, entrypoint, bundle_js] = argv;
 
 // support Qt 5.14
-const target = ["es6", "chrome77"];
+const target = ["es2023"];
 
 build({
     bundle: true,

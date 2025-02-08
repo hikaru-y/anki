@@ -12,12 +12,19 @@
         SlotHostProps,
     } from "$lib/sveltelib/dynamic-slotting";
 
-    enum ButtonPosition {
-        Standalone,
-        InlineStart,
-        Center,
-        InlineEnd,
-    }
+    // enum ButtonPosition {
+    //     Standalone,
+    //     InlineStart,
+    //     Center,
+    //     InlineEnd,
+    // }
+    const ButtonPosition = {
+        Standalone: 0,
+        InlineStart: 1,
+        Center: 2,
+        InlineEnd: 3,
+    } as const;
+    type ButtonPosition = (typeof ButtonPosition)[keyof typeof ButtonPosition];
 
     interface ButtonSlotHostProps extends SlotHostProps {
         position: Writable<ButtonPosition>;
